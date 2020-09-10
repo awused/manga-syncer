@@ -64,6 +64,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// We can revisit this in the future but Mangadex in particular has a
+	// low limit so additional threads are dangerous.
+	conf.Threads = 1
+
 	wg := sync.WaitGroup{}
 	sigs := make(chan os.Signal, 100)
 	doneChan := make(chan struct{})

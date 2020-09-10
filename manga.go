@@ -12,7 +12,6 @@ import (
 )
 
 const mangaURL = "https://mangadex.org/api/?id=%s&server=null&saver=0&type=manga"
-const chapterArchiveName = "Vol"
 
 type mangaChapter struct {
 	Volume     string `json:"volume"`

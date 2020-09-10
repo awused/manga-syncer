@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -108,7 +109,7 @@ func downloadChapter(c chapterJob) {
 		select {
 		case <-closeChan:
 			return
-		default:
+		case <-time.After(5 * time.Second):
 		}
 
 		url := cm.Server + cm.Hash + "/" + p
