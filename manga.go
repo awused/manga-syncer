@@ -168,9 +168,13 @@ func syncManga(mid string, ch chan<- chapterJob) {
 
 		fileName := buildChapterArchiveName(c, cid)
 		filePath := filepath.Join(mangaDir, fileName)
-		ch <- chapterJob{
+		select {
+		case ch <- chapterJob{
 			chapterID:   cid,
 			archivePath: filePath,
+		}:
+		case <-closeChan:
+			return
 		}
 	}
 }

@@ -15,3 +15,4 @@ Fill in manga-syncer.toml and copy it to $HOME/.manga-syncer.toml or $HOME/.conf
 
 Run `manga-syncer` once or periodically with cron. The tool is smart enough to avoid downloading the same chapter multiple times even if the name of the manga changes, but if you manually delete chapters they will be redownloaded and there is currently no way to blacklist chapters or uploaders.
 
+Run `manga-syncer` with individual manga IDs for one-off downloads of completed manga.

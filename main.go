@@ -79,14 +79,28 @@ func main() {
 		go chapterWorker(chapterChan, &wg)
 	}
 
+	manga := conf.Manga
+
+	if len(os.Args) > 1 {
+		mangaStrings := os.Args[1:]
+		manga = []int{}
+		for _, v := range mangaStrings {
+			m, err := strconv.Atoi(v)
+			if err != nil {
+				log.Fatal(err)
+			}
+			manga = append(manga, m)
+		}
+	}
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for _, m := range conf.Manga {
+		for _, m := range manga {
 			select {
 			case <-closeChan:
 				return
-			default:
+			case <-time.After(5 * time.Second):
 			}
 			syncManga(strconv.Itoa(m), chapterChan)
 		}
