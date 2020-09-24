@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"time"
 
@@ -113,7 +112,7 @@ func downloadChapter(c chapterJob) {
 		}
 
 		url := cm.Server + cm.Hash + "/" + p
-		file := filepath.Join(dir, strconv.Itoa(i+1)+filepath.Ext(p))
+		file := filepath.Join(dir, fmt.Sprintf("%03d", i+1)+filepath.Ext(p))
 		err = downloadImage(url, file)
 		if err != nil {
 			log.Errorln(err)
