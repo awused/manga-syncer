@@ -120,8 +120,9 @@ func downloadChapter(c chapterJob) {
 		}
 	}
 
-	err = exec.Command("zip", "-j", "-r", c.archivePath, dir).Run()
+	out, err := exec.Command("zip", "-j", "-r", c.archivePath, dir).CombinedOutput()
 	if err != nil {
+		log.Println("Error zipping directory: " + string(out))
 		log.Errorln(err)
 		return
 	}
