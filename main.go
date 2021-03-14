@@ -53,7 +53,7 @@ var repeatedHyphens = regexp.MustCompile(`--+`)
 func convertName(input string) string {
 	output := safeFilenameRegex.ReplaceAllString(input, "-")
 	output = repeatedHyphens.ReplaceAllString(output, "-")
-	return strings.Trim(output, "-")
+	return strings.Trim(output, "- ")
 }
 
 func main() {
