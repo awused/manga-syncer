@@ -96,6 +96,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		defer close(chapterChan)
 		for _, m := range manga {
 			select {
 			case <-closeChan:
@@ -104,8 +105,6 @@ func main() {
 			}
 			syncManga(strconv.Itoa(m), chapterChan)
 		}
-
-		close(chapterChan)
 	}()
 
 	go func() {
