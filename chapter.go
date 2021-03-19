@@ -21,30 +21,34 @@ type chapterJob struct {
 }
 
 type chapterMetadata struct {
-	ID         int         `json:"id"`
-	Timestamp  int         `json:"timestamp"`
-	Hash       string      `json:"hash"`
-	Volume     string      `json:"volume"`
-	Chapter    string      `json:"chapter"`
-	Title      string      `json:"title"`
-	LangName   string      `json:"lang_name"`
-	LangCode   string      `json:"lang_code"`
-	MangaID    int         `json:"manga_id"`
-	GroupID    int         `json:"group_id"`
-	GroupName  string      `json:"group_name"`
-	GroupID2   int         `json:"group_id_2"`
-	GroupName2 interface{} `json:"group_name_2"`
-	GroupID3   int         `json:"group_id_3"`
-	GroupName3 interface{} `json:"group_name_3"`
-	Comments   int         `json:"comments"`
-	Server     string      `json:"server"`
-	PageArray  []string    `json:"page_array"`
-	Status     string      `json:"status"`
-	// Was int, now bool, but not not relevant
-	//LongStrip  bool				`json:"long_strip"`
+	Code   int    `json:"code"`
+	Status string `json:"status"`
+	Data   struct {
+		ID         int    `json:"id"`
+		Hash       string `json:"hash"`
+		MangaID    int    `json:"mangaId"`
+		MangaTitle string `json:"mangaTitle"`
+		Volume     string `json:"volume"`
+		Chapter    string `json:"chapter"`
+		Title      string `json:"title"`
+		Language   string `json:"language"`
+		Groups     []struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		} `json:"groups"`
+		Uploader       int      `json:"uploader"`
+		Timestamp      int      `json:"timestamp"`
+		ThreadID       int      `json:"threadId"`
+		Comments       int      `json:"comments"`
+		Views          int      `json:"views"`
+		Status         string   `json:"status"`
+		Pages          []string `json:"pages"`
+		Server         string   `json:"server"`
+		ServerFallback string   `json:"serverFallback"`
+	} `json:"data"`
 }
 
-const chapterURL = "https://mangadex.org/api/?id=%s&server=null&saver=0&type=chapter"
+const chapterURL = "https://api.mangadex.org/v2/chapter/%s?server=null&saver=0"
 
 func downloadImage(url string, file string) error {
 	f, err := os.Create(file)
@@ -93,7 +97,7 @@ func downloadChapter(c chapterJob) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Errorln(errors.New(resp.Status))
+		log.Errorln("Chapter "+c.chapterID, resp.Request.URL, errors.New(resp.Status), string(body))
 		return
 	}
 
@@ -104,18 +108,23 @@ func downloadChapter(c chapterJob) {
 		return
 	}
 
-	for i, p := range cm.PageArray {
+	if cm.Code != 200 {
+		log.Errorln("Chapter "+c.chapterID, resp.Request.URL, errors.New(cm.Status), string(body))
+		return
+	}
+
+	for i, p := range cm.Data.Pages {
 		select {
 		case <-closeChan:
 			return
 		case <-time.After(5 * time.Second):
 		}
 
-		url := cm.Server + cm.Hash + "/" + p
+		url := cm.Data.Server + cm.Data.Hash + "/" + p
 		file := filepath.Join(dir, fmt.Sprintf("%03d", i+1)+filepath.Ext(p))
 		err = downloadImage(url, file)
 		if err != nil {
-			log.Errorln(err)
+			log.Errorln("Chapter "+c.chapterID, url, err)
 			return
 		}
 	}
