@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -44,7 +43,7 @@ const delay = time.Second
 // O(n) for each search, but this is unlikely to ever add up to much.
 func findExisting(files []os.FileInfo, id string) string {
 	for _, f := range files {
-		if strings.HasSuffix(strings.TrimSuffix(f.Name(), filepath.Ext(f.Name())), id) {
+		if strings.HasSuffix(strings.TrimSuffix(f.Name(), ".zip"), id) {
 			return f.Name()
 		}
 	}
