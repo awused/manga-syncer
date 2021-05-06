@@ -9,50 +9,63 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-const mangaURL = "https://api.mangadex.org/v2/manga/%s?include=chapters"
+const pageSize = 100
+
+const mangaURL = "https://api.mangadex.org/manga/%s"
+const scanlationGroupsURL = "https://api.mangadex.org/group?limit=100"
 
 type mangaChapter struct {
-	ID         int    `json:"id"`
-	Hash       string `json:"hash"`
-	MangaID    int    `json:"mangaId"`
-	MangaTitle string `json:"mangaTitle"`
-	Volume     string `json:"volume"`
-	Chapter    string `json:"chapter"`
-	Title      string `json:"title"`
-	Language   string `json:"language"`
-	Groups     []int  `json:"groups"`
-	Uploader   int    `json:"uploader"`
-	Timestamp  int    `json:"timestamp"`
-	ThreadID   int    `json:"threadId"`
-	Comments   int    `json:"comments"`
-	Views      int    `json:"views"`
+	Result string `json:"result"`
+	Data   struct {
+		ID         string `json:"id"`
+		Type       string `json:"type"`
+		Attributes struct {
+			Volume             *int        `json:"volume"`
+			Chapter            string      `json:"chapter"`
+			Title              string      `json:"title"`
+			TranslatedLanguage string      `json:"translatedLanguage"`
+			Hash               string      `json:"hash"`
+			Data               []string    `json:"data"`
+			DataSaver          []string    `json:"dataSaver"`
+			PublishAt          time.Time   `json:"publishAt"`
+			CreatedAt          time.Time   `json:"createdAt"`
+			UpdatedAt          interface{} `json:"updatedAt"`
+			Version            int         `json:"version"`
+		} `json:"attributes"`
+	} `json:"data"`
+	Relationships []struct {
+		ID   string `json:"id"`
+		Type string `json:"type"`
+	} `json:"relationships"`
+}
+
+type chaptersResponse struct {
+	Results []mangaChapter `json:"results"`
+	Limit   int            `json:"limit"`
+	Offset  int            `json:"offset"`
+	Total   int            `json:"total"`
 }
 
 type mangaMetadata struct {
-	Code   int    `json:"code"`
-	Status string `json:"status"`
+	Result string `json:"result"`
 	Data   struct {
-		Manga struct {
-			ID          int      `json:"id"`
-			Title       string   `json:"title"`
-			AltTitles   []string `json:"altTitles"`
-			Description string   `json:"description"`
-			Artist      []string `json:"artist"`
-			Author      []string `json:"author"`
-			Publication struct {
-				Language    string `json:"language"`
-				Status      int    `json:"status"`
-				Demographic int    `json:"demographic"`
-			} `json:"publication"`
-			Tags        []int       `json:"tags"`
-			LastChapter interface{} `json:"lastChapter"`
-			LastVolume  interface{} `json:"lastVolume"`
-			IsHentai    bool        `json:"isHentai"`
-			Links       struct {
+		ID         string `json:"id"`
+		Type       string `json:"type"`
+		Attributes struct {
+			Title     map[string]string `json:"title"`
+			AltTitles []struct {
+				En string `json:"en"`
+			} `json:"altTitles"`
+			Description struct {
+				En string `json:"en"`
+			} `json:"description"`
+			IsLocked bool `json:"isLocked"`
+			Links    struct {
 				Al    string `json:"al"`
 				Ap    string `json:"ap"`
 				Bw    string `json:"bw"`
@@ -64,28 +77,80 @@ type mangaMetadata struct {
 				Raw   string `json:"raw"`
 				Engtl string `json:"engtl"`
 			} `json:"links"`
-			Relations []interface{} `json:"relations"`
-			Rating    struct {
-				Bayesian float64 `json:"bayesian"`
-				Mean     float64 `json:"mean"`
-				Users    int     `json:"users"`
-			} `json:"rating"`
-			Views        int    `json:"views"`
-			Follows      int    `json:"follows"`
-			Comments     int    `json:"comments"`
-			LastUploaded int    `json:"lastUploaded"`
-			MainCover    string `json:"mainCover"`
-		} `json:"manga"`
-		Chapters []mangaChapter `json:"chapters"`
-		Groups   []struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
-		} `json:"groups"`
+			OriginalLanguage       string      `json:"originalLanguage"`
+			LastVolume             interface{} `json:"lastVolume"`
+			LastChapter            string      `json:"lastChapter"`
+			PublicationDemographic string      `json:"publicationDemographic"`
+			Status                 string      `json:"status"`
+			Year                   interface{} `json:"year"`
+			ContentRating          string      `json:"contentRating"`
+			Tags                   []struct {
+				ID         string `json:"id"`
+				Type       string `json:"type"`
+				Attributes struct {
+					Name struct {
+						En string `json:"en"`
+					} `json:"name"`
+					Version int `json:"version"`
+				} `json:"attributes"`
+			} `json:"tags"`
+			CreatedAt time.Time   `json:"createdAt"`
+			UpdatedAt interface{} `json:"updatedAt"`
+			Version   int         `json:"version"`
+		} `json:"attributes"`
 	} `json:"data"`
+	Relationships []struct {
+		ID   string `json:"id"`
+		Type string `json:"type"`
+	} `json:"relationships"`
 }
 
-func getOrCreateMangaDirectory(m mangaMetadata, mid string) (string, error) {
+type scanlationGroups struct {
+	Results []struct {
+		Result string `json:"result"`
+		Data   struct {
+			ID         string `json:"id"`
+			Type       string `json:"type"`
+			Attributes struct {
+				Name   string `json:"name"`
+				Leader struct {
+					ID         string `json:"id"`
+					Type       string `json:"type"`
+					Attributes struct {
+						Username string `json:"username"`
+						Version  int    `json:"version"`
+					} `json:"attributes"`
+				} `json:"leader"`
+				Members []struct {
+					ID         string `json:"id"`
+					Type       string `json:"type"`
+					Attributes struct {
+						Username string `json:"username"`
+						Version  int    `json:"version"`
+					} `json:"attributes"`
+				} `json:"members"`
+				CreatedAt time.Time   `json:"createdAt"`
+				UpdatedAt interface{} `json:"updatedAt"`
+				Version   int         `json:"version"`
+			} `json:"attributes"`
+		} `json:"data"`
+		Relationships []struct {
+			ID   string `json:"id"`
+			Type string `json:"type"`
+		} `json:"relationships"`
+	} `json:"results"`
+	Limit  int `json:"limit"`
+	Offset int `json:"offset"`
+	Total  int `json:"total"`
+}
+
+func getOrCreateMangaDirectory(m mangaMetadata, mUUID string) (string, error) {
 	dirs, err := ioutil.ReadDir(conf.OutputDirectory)
+	if err != nil {
+		return "", err
+	}
+
+	mid, err := convertUUID(mUUID)
 	if err != nil {
 		return "", err
 	}
@@ -96,25 +161,36 @@ func getOrCreateMangaDirectory(m mangaMetadata, mid string) (string, error) {
 		return filepath.Join(conf.OutputDirectory, existing), nil
 	}
 
-	dirName := convertName(m.Data.Manga.Title) + " - " + mid
+	title, ok := m.Data.Attributes.Title["en"]
+
+	// If there's no English title, pick any title at all. It doesn't matter.
+	if !ok {
+		for _, v := range m.Data.Attributes.Title {
+			title = v
+			break
+		}
+	}
+
+	dirName := convertName(title) + " - " + mid
 	dir := filepath.Join(conf.OutputDirectory, dirName)
+	log.Debugln("Creating dir " + dir)
 	return dir, os.Mkdir(dir, 0755)
 }
 
-func buildChapterArchiveName(c mangaChapter, cid string, groups map[int]string) string {
+func buildChapterArchiveName(c mangaChapter, cid string, groups map[string]string) string {
 	out := ""
-	if c.Volume != "" {
-		out += "Vol. " + c.Volume + " "
+	if c.Data.Attributes.Volume != nil {
+		out += "Vol. " + strconv.Itoa(*c.Data.Attributes.Volume) + " "
 	}
 
-	out += "Ch. " + c.Chapter
+	out += "Ch. " + c.Data.Attributes.Chapter
 
-	if c.Title != "" {
-		out += " " + c.Title
+	if c.Data.Attributes.Title != "" {
+		out += " " + c.Data.Attributes.Title
 	}
 
 	gns := []string{}
-	for _, g := range c.Groups {
+	for _, g := range groupIdsForChapter(c) {
 		gn, ok := groups[g]
 		if ok {
 			gns = append(gns, gn)
@@ -124,6 +200,118 @@ func buildChapterArchiveName(c mangaChapter, cid string, groups map[int]string) 
 
 	out += " - " + cid + ".zip"
 	return convertName(out)
+}
+
+const chaptersURL = "https://api.mangadex.org/manga/%s/feed?limit=%d&offset=%d&locales[]=%s"
+
+func getChapterPage(mid string, offset int) (chaptersResponse, error) {
+	resp, err := client.Get(fmt.Sprintf(chaptersURL, mid, pageSize, offset, conf.Language))
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Errorln("Manga "+mid, resp.Request.URL, err)
+		return chaptersResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Errorln("Manga "+mid, resp.Request.URL, errors.New(resp.Status), string(body))
+		return chaptersResponse{}, err
+	}
+
+	var cr chaptersResponse
+	err = json.Unmarshal(body, &cr)
+	if err != nil {
+		log.Errorln("Manga "+mid, resp.Request.URL, err, string(body))
+		return chaptersResponse{}, err
+	}
+
+	return cr, nil
+}
+
+func getAllChapters(mid string) ([]mangaChapter, error) {
+	total := 1
+	offset := 0
+	chapters := []mangaChapter{}
+
+	for offset < total {
+		<-time.After(delay)
+		cr, err := getChapterPage(mid, offset)
+		if err != nil {
+			return nil, err
+		}
+
+		chapters = append(chapters, cr.Results...)
+		total = cr.Total
+
+		if len(cr.Results) != pageSize && offset+len(cr.Results) < total {
+			log.Warningf("Manga %d: invalid chapter pagination. "+
+				"Requested %d chapters at offset %d with %d total but got %d\n",
+				mid, pageSize, offset, total, len(cr.Results))
+		}
+
+		offset += pageSize
+	}
+
+	return chapters, nil
+}
+
+func groupIdsForChapter(c mangaChapter) []string {
+	groups := []string{}
+	for _, r := range c.Relationships {
+		if r.Type == "scanlation_group" {
+			groups = append(groups, r.ID)
+		}
+	}
+
+	return groups
+}
+
+func getAllGroups(chapters []mangaChapter) (map[string]string, error) {
+	// Just handle up to 100 groups since it's rather unrealistic to plan for more.
+	groups := make(map[string]string)
+
+	for _, c := range chapters {
+		for _, g := range groupIdsForChapter(c) {
+			groups[g] = ""
+		}
+	}
+
+	url := scanlationGroupsURL
+	for gid := range groups {
+		url += "&ids[]=" + gid
+	}
+
+	<-time.After(delay)
+
+	resp, err := client.Get(url)
+	if err != nil {
+		log.Errorln(resp.Request.URL, err)
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Errorln(resp.Request.URL, err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Errorln(resp.Request.URL, errors.New(resp.Status), string(body))
+		return nil, err
+	}
+
+	var sg scanlationGroups
+	err = json.Unmarshal(body, &sg)
+	if err != nil {
+		log.Errorln(resp.Request.URL, err, string(body))
+		return nil, err
+	}
+
+	groups = make(map[string]string)
+	for _, g := range sg.Results {
+		groups[g.Data.ID] = g.Data.Attributes.Name
+	}
+	return groups, nil
 }
 
 func syncManga(mid string, ch chan<- chapterJob) {
@@ -151,8 +339,8 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		return
 	}
 
-	if m.Code != 200 {
-		log.Errorln("Manga "+mid, resp.Request.URL, errors.New(m.Status), string(body))
+	if m.Result != "ok" {
+		log.Errorln("Manga "+mid, resp.Request.URL, errors.New(m.Result), string(body))
 		return
 	}
 
@@ -175,18 +363,32 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		}
 	}
 
-	groups := make(map[int]string)
-	for _, g := range m.Data.Groups {
-		groups[g.ID] = g.Name
+	chapters, err := getAllChapters(mid)
+	if err != nil {
+		log.Errorln("Manga "+mid, "Error fetching chapters", err)
+		return
+	}
+	log.Debugf("Fetched %d chapters for %s\n", len(chapters), mangaDir)
+
+	groups, err := getAllGroups(chapters)
+	if err != nil {
+		log.Errorln("Manga "+mid, "Error fetching scanlation groups", err)
+		return
 	}
 
-	for _, c := range m.Data.Chapters {
-		cid := strconv.Itoa(c.ID)
-		if c.Language != conf.Language {
-			continue
+	for _, c := range chapters {
+		cid, err := convertUUID(c.Data.ID)
+		if err != nil {
+			log.Errorln("Manga "+mid, "Invalid chapter UUID", err)
+			return
 		}
 
-		if findExisting(archives, cid) != "" {
+		existing := findExisting(archives, cid)
+		if err != nil {
+			log.Errorln("Manga "+mid, "Error checking for existing archives", err)
+			return
+		}
+		if existing != "" {
 			continue
 		}
 
@@ -194,7 +396,7 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		filePath := filepath.Join(mangaDir, fileName)
 		select {
 		case ch <- chapterJob{
-			chapterID:   cid,
+			chapter:     c,
 			archivePath: filePath,
 		}:
 		case <-closeChan:

@@ -16,39 +16,15 @@ import (
 )
 
 type chapterJob struct {
-	chapterID   string
+	chapter     mangaChapter
 	archivePath string
 }
 
-type chapterMetadata struct {
-	Code   int    `json:"code"`
-	Status string `json:"status"`
-	Data   struct {
-		ID         int    `json:"id"`
-		Hash       string `json:"hash"`
-		MangaID    int    `json:"mangaId"`
-		MangaTitle string `json:"mangaTitle"`
-		Volume     string `json:"volume"`
-		Chapter    string `json:"chapter"`
-		Title      string `json:"title"`
-		Language   string `json:"language"`
-		Groups     []struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
-		} `json:"groups"`
-		Uploader       int      `json:"uploader"`
-		Timestamp      int      `json:"timestamp"`
-		ThreadID       int      `json:"threadId"`
-		Comments       int      `json:"comments"`
-		Views          int      `json:"views"`
-		Status         string   `json:"status"`
-		Pages          []string `json:"pages"`
-		Server         string   `json:"server"`
-		ServerFallback string   `json:"serverFallback"`
-	} `json:"data"`
+type atHomeResponse struct {
+	BaseURL string `json:"baseUrl"`
 }
 
-const chapterURL = "https://api.mangadex.org/v2/chapter/%s?server=null&saver=0"
+const atHomeServerURL = "https://api.mangadex.org/at-home/server/%s"
 
 func downloadImage(url string, file string) error {
 	f, err := os.Create(file)
@@ -84,7 +60,7 @@ func downloadChapter(c chapterJob) {
 	}
 	defer os.RemoveAll(dir)
 
-	resp, err := client.Get(fmt.Sprintf(chapterURL, c.chapterID))
+	resp, err := client.Get(fmt.Sprintf(atHomeServerURL, c.chapter.Data.ID))
 	if err != nil {
 		log.Errorln(err)
 		return
@@ -97,34 +73,34 @@ func downloadChapter(c chapterJob) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Errorln("Chapter "+c.chapterID, resp.Request.URL, errors.New(resp.Status), string(body))
+		log.Errorln("Chapter "+c.chapter.Data.ID, resp.Request.URL, errors.New(resp.Status), string(body))
 		return
 	}
 
-	var cm chapterMetadata
-	err = json.Unmarshal(body, &cm)
+	var ah atHomeResponse
+	err = json.Unmarshal(body, &ah)
 	if err != nil {
 		log.Errorln(err)
 		return
 	}
 
-	if cm.Code != 200 {
-		log.Errorln("Chapter "+c.chapterID, resp.Request.URL, errors.New(cm.Status), string(body))
+	if ah.BaseURL == "" {
+		log.Errorln("Chapter "+c.chapter.Data.ID, resp.Request.URL, "Empty base URL")
 		return
 	}
 
-	for i, p := range cm.Data.Pages {
+	for i, p := range c.chapter.Data.Attributes.Data {
 		select {
 		case <-closeChan:
 			return
-		case <-time.After(5 * time.Second):
+		case <-time.After(delay):
 		}
 
-		url := cm.Data.Server + cm.Data.Hash + "/" + p
+		url := ah.BaseURL + "/data/" + c.chapter.Data.Attributes.Hash + "/" + p
 		file := filepath.Join(dir, fmt.Sprintf("%03d", i+1)+filepath.Ext(p))
 		err = downloadImage(url, file)
 		if err != nil {
-			log.Errorln("Chapter "+c.chapterID, url, err)
+			log.Errorln("Chapter "+c.chapter.Data.ID, url, err)
 			return
 		}
 	}

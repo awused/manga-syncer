@@ -1,17 +1,19 @@
 package main
 
 import (
+	"encoding/base64"
 	"flag"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/awused/awconf"
 	log "github.com/sirupsen/logrus"
@@ -19,7 +21,7 @@ import (
 
 type config struct {
 	Language        string
-	Manga           []int
+	Manga           []string
 	OutputDirectory string
 	Threads         int
 	TempDirectory   string
@@ -35,7 +37,9 @@ var client *http.Client = &http.Client{
 	},
 }
 
-// Finds an existing directory or file with the given manga/chapter ID.
+const delay = time.Second
+
+// Finds an existing directory or file with the given manga/chapter ID. Not UUID.
 // This handles cases where manga are renamed as long as the IDs are constant.
 // O(n) for each search, but this is unlikely to ever add up to much.
 func findExisting(files []os.FileInfo, id string) string {
@@ -54,6 +58,16 @@ func convertName(input string) string {
 	output := safeFilenameRegex.ReplaceAllString(input, "-")
 	output = repeatedHyphens.ReplaceAllString(output, "-")
 	return strings.Trim(output, "- ")
+}
+
+func convertUUID(input string) (string, error) {
+	u, err := uuid.Parse(input)
+	if err != nil {
+		log.Errorln("Invalid UUID string", input)
+		return "", err
+	}
+
+	return strings.Trim(base64.URLEncoding.EncodeToString(u[:]), "="), nil
 }
 
 func main() {
@@ -83,12 +97,9 @@ func main() {
 
 	if len(os.Args) > 1 {
 		mangaStrings := os.Args[1:]
-		manga = []int{}
+		manga = []string{}
 		for _, v := range mangaStrings {
-			m, err := strconv.Atoi(v)
-			if err != nil {
-				log.Fatal(err)
-			}
+			m := v
 			manga = append(manga, m)
 		}
 	}
@@ -101,9 +112,9 @@ func main() {
 			select {
 			case <-closeChan:
 				return
-			case <-time.After(5 * time.Second):
+			case <-time.After(delay):
 			}
-			syncManga(strconv.Itoa(m), chapterChan)
+			syncManga(m, chapterChan)
 		}
 	}()
 

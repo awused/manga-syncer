@@ -17,10 +17,11 @@ TempDirectory = '/tmp'
 # Threads = 2
 
 # Language code used by Mangadex. Must be set.
-Language = "gb"
+Language = "en"
 
-# Mangadex manga IDs.
+# Mangadex manga UUIDs.
+# TODO -- update
 # These are the numbers in the URLs for the Manga, not the individual chapters.
-# https://mangadex.org/title/36283/looking-up-to-magical-girls -> 36283
+# https://mangadex.org/title/36283/looking-up-to-magical-girls -> "36283"
 Manga = [
 ]
