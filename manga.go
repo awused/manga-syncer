@@ -375,7 +375,9 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		return
 	}
 
-	for _, c := range chapters {
+	for i := range chapters {
+		// Reverse order to match the logical order of chapters
+		c := chapters[len(chapters)-i-1]
 		cid, err := convertUUID(c.Data.ID)
 		if err != nil {
 			log.Errorln("Manga "+mid, "Invalid chapter UUID", err)
