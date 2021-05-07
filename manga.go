@@ -383,6 +383,17 @@ func syncManga(mid string, ch chan<- chapterJob) {
 			return
 		}
 
+		if len(c.Data.Attributes.Data) == 0 {
+			log.Debugln("Chapter "+cid, "Empty chapter", err)
+			continue
+		}
+
+		if len(c.Data.Attributes.Data) == 1 &&
+			strings.HasPrefix(c.Data.Attributes.Data[0], "https://") {
+			log.Debugln("Chapter "+cid, "Chapter is externally hosted", err)
+			continue
+		}
+
 		existing := findExisting(archives, cid)
 		if err != nil {
 			log.Errorln("Manga "+mid, "Error checking for existing archives", err)
