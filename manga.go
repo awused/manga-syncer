@@ -198,8 +198,7 @@ func buildChapterArchiveName(c mangaChapter, cid string, groups map[string]strin
 	}
 	out += " [" + strings.Join(gns, ", ") + "]"
 
-	out += " - " + cid + ".zip"
-	return convertName(out)
+	return convertName(out) + " - " + cid + ".zip"
 }
 
 const chaptersURL = "https://api.mangadex.org/manga/%s/feed?limit=%d&offset=%d&locales[]=%s"
