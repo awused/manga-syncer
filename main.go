@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"flag"
 	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -37,6 +39,18 @@ var client *http.Client = &http.Client{
 }
 
 const delay = time.Second
+
+type stringable string
+
+func (st *stringable) UnmarshalJSON(b []byte) error {
+	if b[0] != '"' {
+		var i int
+		err := json.Unmarshal(b, &i)
+		*st = (stringable)(strconv.Itoa(i))
+		return err
+	}
+	return json.Unmarshal(b, (*string)(st))
+}
 
 // Finds an existing directory or file with the given manga/chapter ID. Not UUID.
 // This handles cases where manga are renamed as long as the IDs are constant.

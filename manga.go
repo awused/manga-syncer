@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,8 +24,8 @@ type mangaChapter struct {
 		ID         string `json:"id"`
 		Type       string `json:"type"`
 		Attributes struct {
-			Volume             *int        `json:"volume"`
-			Chapter            string      `json:"chapter"`
+			Volume             stringable  `json:"volume"`
+			Chapter            stringable  `json:"chapter"`
 			Title              string      `json:"title"`
 			TranslatedLanguage string      `json:"translatedLanguage"`
 			Hash               string      `json:"hash"`
@@ -179,11 +178,11 @@ func getOrCreateMangaDirectory(m mangaMetadata, mUUID string) (string, error) {
 
 func buildChapterArchiveName(c mangaChapter, cid string, groups map[string]string) string {
 	out := ""
-	if c.Data.Attributes.Volume != nil {
-		out += "Vol. " + strconv.Itoa(*c.Data.Attributes.Volume) + " "
+	if c.Data.Attributes.Volume != "" {
+		out += "Vol. " + (string)(c.Data.Attributes.Volume) + " "
 	}
 
-	out += "Ch. " + c.Data.Attributes.Chapter
+	out += "Ch. " + (string)(c.Data.Attributes.Chapter)
 
 	if c.Data.Attributes.Title != "" {
 		out += " " + c.Data.Attributes.Title
