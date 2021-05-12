@@ -19,6 +19,10 @@ TempDirectory = '/tmp'
 # Language code used by Mangadex. Must be set.
 Language = "en"
 
+# Whether or not chapter archives should be renamed.
+# This can be relevant when volume numbering is revised later.
+RenameChapters = true
+
 # Mangadex manga UUIDs.
 # TODO -- update
 # These are the numbers in the URLs for the Manga, not the individual chapters.

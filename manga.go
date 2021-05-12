@@ -24,7 +24,7 @@ type mangaChapter struct {
 		ID         string `json:"id"`
 		Type       string `json:"type"`
 		Attributes struct {
-			Volume             stringable  `json:"volume"`
+			Volume             *stringable `json:"volume"`
 			Chapter            stringable  `json:"chapter"`
 			Title              string      `json:"title"`
 			TranslatedLanguage string      `json:"translatedLanguage"`
@@ -178,8 +178,8 @@ func getOrCreateMangaDirectory(m mangaMetadata, mUUID string) (string, error) {
 
 func buildChapterArchiveName(c mangaChapter, cid string, groups map[string]string) string {
 	out := ""
-	if c.Data.Attributes.Volume != "" {
-		out += "Vol. " + (string)(c.Data.Attributes.Volume) + " "
+	if c.Data.Attributes.Volume != nil {
+		out += "Vol. " + (string)(*c.Data.Attributes.Volume) + " "
 	}
 
 	out += "Ch. " + (string)(c.Data.Attributes.Chapter)
@@ -399,12 +399,21 @@ func syncManga(mid string, ch chan<- chapterJob) {
 			log.Errorln("Manga "+mid, "Error checking for existing archives", err)
 			return
 		}
-		if existing != "" {
-			continue
-		}
 
 		fileName := buildChapterArchiveName(c, cid, groups)
 		filePath := filepath.Join(mangaDir, fileName)
+
+		if existing != "" {
+			if conf.RenameChapters && existing != fileName {
+				// Don't check for existing files, just clobber them
+				err = os.Rename(filepath.Join(mangaDir, existing), filePath)
+				if err != nil {
+					log.Errorln("Error renaming "+existing+" -> "+fileName, err)
+				}
+			}
+			continue
+		}
+
 		select {
 		case ch <- chapterJob{
 			chapter:     c,

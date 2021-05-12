@@ -26,6 +26,7 @@ type config struct {
 	OutputDirectory string
 	Threads         int
 	TempDirectory   string
+	RenameChapters  bool
 }
 
 var conf config
