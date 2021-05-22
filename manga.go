@@ -200,7 +200,7 @@ func buildChapterArchiveName(c mangaChapter, cid string, groups map[string]strin
 	return convertName(out) + " - " + cid + ".zip"
 }
 
-const chaptersURL = "https://api.mangadex.org/manga/%s/feed?limit=%d&offset=%d&locales[]=%s"
+const chaptersURL = "https://api.mangadex.org/manga/%s/feed?limit=%d&offset=%d&translatedLanguage[]=%s"
 
 func getChapterPage(mid string, offset int) (chaptersResponse, error) {
 	resp, err := client.Get(fmt.Sprintf(chaptersURL, mid, pageSize, offset, conf.Language))
