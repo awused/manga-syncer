@@ -65,7 +65,7 @@ func findExisting(files []os.FileInfo, id string) string {
 	return ""
 }
 
-var safeFilenameRegex = regexp.MustCompile(`[^\p{L}\p{N}-_+=[\]. ]+`)
+var safeFilenameRegex = regexp.MustCompile(`[^'"#!\(\)!\p{L}\p{N}-_+=\[\]. ]+`)
 var repeatedHyphens = regexp.MustCompile(`--+`)
 
 func convertName(input string) string {

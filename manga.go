@@ -200,7 +200,7 @@ func buildChapterArchiveName(c mangaChapter, cid string, groups map[string]strin
 	return convertName(out) + " - " + cid + ".zip"
 }
 
-const chaptersURL = "https://api.mangadex.org/manga/%s/feed?limit=%d&offset=%d&translatedLanguage[]=%s"
+const chaptersURL = "https://api.mangadex.org/manga/%s/feed?limit=%d&offset=%d&translatedLanguage[]=%s&order[volume]=asc&order[chapter]=asc"
 
 func getChapterPage(mid string, offset int) (chaptersResponse, error) {
 	resp, err := client.Get(fmt.Sprintf(chaptersURL, mid, pageSize, offset, conf.Language))
@@ -374,14 +374,22 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		return
 	}
 
-	for i := range chapters {
-		// Reverse order to match the logical order of chapters
-		c := chapters[len(chapters)-i-1]
+	chs := make(map[string]bool)
+
+	for _, c := range chapters {
 		cid, err := convertUUID(c.Data.ID)
 		if err != nil {
 			log.Errorln("Manga "+mid, "Invalid chapter UUID", err)
 			return
 		}
+
+		if chs[c.Data.ID] {
+			// Turns out, mangadex doesn't have a default ordering for chapters.
+			// I don't trust them to honour an explicit ordering either.
+			log.Warningln("duplicate chapter ID " + c.Data.ID)
+			continue
+		}
+		chs[c.Data.ID] = true
 
 		if len(c.Data.Attributes.Data) == 0 {
 			log.Debugln("Chapter "+cid, "Empty chapter", err)
