@@ -109,8 +109,8 @@ func main() {
 
 	manga := conf.Manga
 
-	if len(os.Args) > 1 {
-		mangaStrings := os.Args[1:]
+	if flag.NArg() > 1 {
+		mangaStrings := flag.Args()
 		manga = []string{}
 		for _, v := range mangaStrings {
 			m := v
