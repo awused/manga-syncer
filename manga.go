@@ -242,7 +242,7 @@ func getAllChapters(mid string) ([]mangaChapter, error) {
 		total = cr.Total
 
 		if len(cr.Results) != pageSize && offset+len(cr.Results) < total {
-			log.Warningf("Manga %d: invalid chapter pagination. "+
+			log.Warningf("Manga %s: invalid chapter pagination. "+
 				"Requested %d chapters at offset %d with %d total but got %d\n",
 				mid, pageSize, offset, total, len(cr.Results))
 		}
