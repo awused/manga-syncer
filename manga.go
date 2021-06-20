@@ -154,12 +154,6 @@ func getOrCreateMangaDirectory(m mangaMetadata, mUUID string) (string, error) {
 		return "", err
 	}
 
-	// This will break and die if an existing non-dir file exists
-	existing := findExisting(dirs, mid)
-	if existing != "" {
-		return filepath.Join(conf.OutputDirectory, existing), nil
-	}
-
 	title, ok := m.Data.Attributes.Title["en"]
 
 	// If there's no English title, pick any title at all. It doesn't matter.
@@ -173,6 +167,22 @@ func getOrCreateMangaDirectory(m mangaMetadata, mUUID string) (string, error) {
 	dirName := convertName(title) + " - " + mid
 	dir := filepath.Join(conf.OutputDirectory, dirName)
 	log.Debugln("Creating dir " + dir)
+
+	// This will break and die if an existing non-dir file exists
+	existing := findExisting(dirs, mid)
+	if existing != "" {
+		if conf.RenameManga && existing != dirName {
+			// Don't check for existing files, just clobber them
+			err = os.Rename(filepath.Join(conf.OutputDirectory, existing), dir)
+			if err != nil {
+				log.Errorln("Error renaming "+existing+" -> "+dir, err)
+				return "", err
+			}
+			return dir, nil
+		}
+
+		return filepath.Join(conf.OutputDirectory, existing), nil
+	}
 	return dir, os.Mkdir(dir, 0755)
 }
 

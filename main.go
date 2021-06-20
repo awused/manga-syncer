@@ -27,6 +27,7 @@ type config struct {
 	Threads         int
 	TempDirectory   string
 	RenameChapters  bool
+	RenameManga     bool
 }
 
 var conf config
@@ -109,7 +110,7 @@ func main() {
 
 	manga := conf.Manga
 
-	if flag.NArg() > 1 {
+	if flag.NArg() > 0 {
 		mangaStrings := flag.Args()
 		manga = []string{}
 		for _, v := range mangaStrings {

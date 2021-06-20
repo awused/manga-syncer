@@ -23,6 +23,9 @@ Language = "en"
 # This can be relevant when volume numbering is revised later.
 RenameChapters = true
 
+# Whether or not manga directories should be renamed.
+RenameManga = true
+
 # Mangadex manga UUIDs.
 # TODO -- update
 # These are the numbers in the URLs for the Manga, not the individual chapters.
