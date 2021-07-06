@@ -26,7 +26,7 @@ type mangaChapter struct {
 		Attributes struct {
 			Volume             *stringable `json:"volume"`
 			Chapter            stringable  `json:"chapter"`
-			Title              string      `json:"title"`
+			Title              *string     `json:"title"`
 			TranslatedLanguage string      `json:"translatedLanguage"`
 			Hash               string      `json:"hash"`
 			Data               []string    `json:"data"`
@@ -194,8 +194,8 @@ func buildChapterArchiveName(c mangaChapter, cid string, groups map[string]strin
 
 	out += "Ch. " + (string)(c.Data.Attributes.Chapter)
 
-	if c.Data.Attributes.Title != "" {
-		out += " " + c.Data.Attributes.Title
+	if c.Data.Attributes.Title != nil && *c.Data.Attributes.Title != "" {
+		out += " " + *c.Data.Attributes.Title
 	}
 
 	gns := []string{}
