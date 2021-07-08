@@ -66,6 +66,18 @@ func findExisting(files []os.FileInfo, id string) string {
 	return ""
 }
 
+// Only for print-unmatched, fine to be inefficient
+func removeExisting(files []os.FileInfo, id string) []os.FileInfo {
+	for i, f := range files {
+		if strings.HasSuffix(strings.TrimSuffix(f.Name(), ".zip"), id) {
+			return append(files[:i], files[i+1:]...)
+		}
+	}
+
+	// Should never happen
+	return files
+}
+
 var safeFilenameRegex = regexp.MustCompile(`[^'"#!\(\)!\p{L}\p{N}-_+=\[\]. ]+`)
 var repeatedHyphens = regexp.MustCompile(`--+`)
 
@@ -85,8 +97,15 @@ func convertUUID(input string) (string, error) {
 	return strings.Trim(base64.URLEncoding.EncodeToString(u[:]), "="), nil
 }
 
+var printValid = flag.Bool("print-valid", false, "Print all valid chapter archives to stdout without downloading anything new.")
+var printUmatched = flag.Bool("print-unmatched", false, "Print all chapter archives that exist in a manga directory but don't match a chapter on the remote host.")
+
 func main() {
 	flag.Parse()
+
+	if *printValid && *printUmatched {
+		log.Fatalln("Can't specify print-valid and print-unmatched at the same time")
+	}
 
 	err := awconf.LoadConfig("manga-syncer", &conf)
 	if err != nil {

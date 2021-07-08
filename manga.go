@@ -422,13 +422,27 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		filePath := filepath.Join(mangaDir, fileName)
 
 		if existing != "" {
+			if *printUmatched {
+				archives = removeExisting(archives, cid)
+			}
+
 			if conf.RenameChapters && existing != fileName {
 				// Don't check for existing files, just clobber them
 				err = os.Rename(filepath.Join(mangaDir, existing), filePath)
 				if err != nil {
 					log.Errorln("Error renaming "+existing+" -> "+fileName, err)
 				}
+				existing = fileName
 			}
+
+			if *printValid {
+				fmt.Println(filepath.Join(mangaDir, existing))
+			}
+			continue
+		}
+
+		if *printValid {
+			fmt.Println(filePath)
 			continue
 		}
 
@@ -439,6 +453,12 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		}:
 		case <-closeChan:
 			return
+		}
+	}
+
+	if *printUmatched {
+		for _, f := range archives {
+			fmt.Println(filepath.Join(mangaDir, f.Name()))
 		}
 	}
 }
