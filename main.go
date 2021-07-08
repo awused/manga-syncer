@@ -40,7 +40,7 @@ var client *http.Client = &http.Client{
 	},
 }
 
-const delay = time.Second
+const delay = 2 * time.Second
 
 type stringable string
 
