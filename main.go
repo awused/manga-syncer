@@ -44,6 +44,8 @@ const delay = 2 * time.Second
 
 type stringable string
 
+var sem chan struct{}
+
 func (st *stringable) UnmarshalJSON(b []byte) error {
 	if b[0] != '"' {
 		var i int
@@ -114,7 +116,7 @@ func main() {
 
 	// We can revisit this in the future but Mangadex in particular has a
 	// low limit so additional threads are dangerous.
-	conf.Threads = 1
+	// conf.Threads = 1
 
 	wg := sync.WaitGroup{}
 	sigs := make(chan os.Signal, 100)
@@ -122,10 +124,11 @@ func main() {
 	chapterChan := make(chan chapterJob, conf.Threads*2)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
 
-	for i := 0; i < conf.Threads; i++ {
-		wg.Add(1)
-		go chapterWorker(chapterChan, &wg)
-	}
+	// for i := 0; i < conf.Threads; i++ {
+	wg.Add(1)
+	go chapterWorker(chapterChan, &wg)
+	// }
+	sem = make(chan struct{}, conf.Threads)
 
 	manga := conf.Manga
 

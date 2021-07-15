@@ -26,6 +26,9 @@ type atHomeResponse struct {
 
 const atHomeServerURL = "https://api.mangadex.org/at-home/server/%s"
 
+// This one has a hard 1/s limit, so only consume half of it
+var atHomeTicker = time.NewTicker(time.Second * 2)
+
 func downloadImage(url string, file string) error {
 	f, err := os.Create(file)
 	if err != nil {
@@ -60,6 +63,12 @@ func downloadChapter(c chapterJob) {
 	}
 	defer os.RemoveAll(dir)
 
+	select {
+	case <-closeChan:
+		return
+	case <-atHomeTicker.C:
+	}
+
 	resp, err := client.Get(fmt.Sprintf(atHomeServerURL, c.chapter.Data.ID))
 	if err != nil {
 		log.Errorln(err)
@@ -89,20 +98,44 @@ func downloadChapter(c chapterJob) {
 		return
 	}
 
+	errCh := make(chan error)
 	for i, p := range c.chapter.Data.Attributes.Data {
 		select {
 		case <-closeChan:
 			return
-		case <-time.After(delay):
+			// case <-time.After(delay):
+		default:
 		}
 
 		url := ah.BaseURL + "/data/" + c.chapter.Data.Attributes.Hash + "/" + p
 		file := filepath.Join(dir, fmt.Sprintf("%03d", i+1)+filepath.Ext(p))
-		err = downloadImage(url, file)
-		if err != nil {
-			log.Errorln("Chapter "+c.chapter.Data.ID, url, err)
-			return
+		go func() {
+			select {
+			case <-closeChan:
+				errCh <- errors.New("closed")
+				return
+				// case <-time.After(delay):
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+			}
+
+			err := downloadImage(url, file)
+			if err != nil {
+				log.Errorln("Chapter "+c.chapter.Data.ID, url, err)
+			}
+			errCh <- err
+		}()
+	}
+
+	for range c.chapter.Data.Attributes.Data {
+		pageErr := <-errCh
+		if pageErr != nil {
+			err = pageErr
 		}
+	}
+	close(errCh)
+	if err != nil {
+		return
 	}
 
 	out, err := exec.Command("zip", "-j", "-r", c.archivePath, dir).CombinedOutput()
