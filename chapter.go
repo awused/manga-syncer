@@ -63,10 +63,12 @@ func downloadChapter(c chapterJob) {
 	}
 	defer os.RemoveAll(dir)
 
-	select {
-	case <-closeChan:
-		return
-	case <-atHomeTicker.C:
+	if *chapterFlag != "" {
+		select {
+		case <-closeChan:
+			return
+		case <-atHomeTicker.C:
+		}
 	}
 
 	resp, err := client.Get(fmt.Sprintf(atHomeServerURL, c.chapter.Data.ID))

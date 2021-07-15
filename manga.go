@@ -16,6 +16,7 @@ import (
 const pageSize = 100
 
 const mangaURL = "https://api.mangadex.org/manga/%s"
+const chapterURL = "https://api.mangadex.org/chapter/%s"
 const scanlationGroupsURL = "https://api.mangadex.org/group?limit=100"
 
 type mangaChapter struct {
@@ -143,6 +144,44 @@ type scanlationGroups struct {
 	Total  int `json:"total"`
 }
 
+func getSingleChapter(cid string) (mangaChapter, error) {
+	var c mangaChapter
+	resp, err := client.Get(fmt.Sprintf(chapterURL, cid))
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Errorln("Chapter "+cid, resp.Request.URL, err)
+		return c, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Errorln("Chapter "+cid, resp.Request.URL, errors.New(resp.Status), string(body))
+		return c, err
+	}
+
+	err = json.Unmarshal(body, &c)
+	if err != nil {
+		log.Errorln("Chapter "+cid, resp.Request.URL, err, string(body))
+		return c, err
+	}
+	return c, nil
+}
+
+func getMangaIDForChapter(cid string) (string, error) {
+	c, err := getSingleChapter(cid)
+	if err != nil {
+		return "", err
+	}
+
+	for _, v := range c.Relationships {
+		if v.Type == "manga" {
+			return v.ID, nil
+		}
+	}
+
+	return "", errors.New("No manga ID for chapter " + cid)
+}
+
 func getOrCreateMangaDirectory(m mangaMetadata, mUUID string) (string, error) {
 	dirs, err := ioutil.ReadDir(conf.OutputDirectory)
 	if err != nil {
@@ -240,6 +279,12 @@ func getAllChapters(mid string) ([]mangaChapter, error) {
 	total := 1
 	offset := 0
 	chapters := []mangaChapter{}
+
+	if *chapterFlag != "" {
+		// Kind of a waste to call this twice but it should be fine.
+		c, err := getSingleChapter(*chapterFlag)
+		return append(chapters, c), err
+	}
 
 	for offset < total {
 		<-time.After(delay)
@@ -390,7 +435,12 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		cid, err := convertUUID(c.Data.ID)
 		if err != nil {
 			log.Errorln("Manga "+mid, "Invalid chapter UUID", err)
+			// Unlikely to be able to continue
 			return
+		}
+
+		if *chapterFlag != "" && *chapterFlag != c.Data.ID {
+			continue
 		}
 
 		if chs[c.Data.ID] {
@@ -415,6 +465,7 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		existing := findExisting(archives, cid)
 		if err != nil {
 			log.Errorln("Manga "+mid, "Error checking for existing archives", err)
+			// Unlikely to be able to continue
 			return
 		}
 

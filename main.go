@@ -40,7 +40,7 @@ var client *http.Client = &http.Client{
 	},
 }
 
-const delay = 2 * time.Second
+var delay = 2 * time.Second
 
 type stringable string
 
@@ -101,6 +101,7 @@ func convertUUID(input string) (string, error) {
 
 var printValid = flag.Bool("print-valid", false, "Print all valid chapter archives to stdout without downloading anything new.")
 var printUmatched = flag.Bool("print-unmatched", false, "Print all chapter archives that exist in a manga directory but don't match a chapter on the remote host.")
+var chapterFlag = flag.String("chapter", "", "Download only this chapter from the given manga.")
 
 func main() {
 	flag.Parse()
@@ -114,6 +115,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if conf.Threads <= 0 {
+		log.Fatalln("Must specify at least one thread.")
+	}
 	// We can revisit this in the future but Mangadex in particular has a
 	// low limit so additional threads are dangerous.
 	// conf.Threads = 1
@@ -139,6 +143,15 @@ func main() {
 			m := v
 			manga = append(manga, m)
 		}
+	}
+
+	if *chapterFlag != "" {
+		mid, err := getMangaIDForChapter(*chapterFlag)
+		if err != nil {
+			log.Fatalln("Failed to get manga ID for chapter", *chapterFlag)
+		}
+		manga = []string{mid}
+		delay = 0 // We will be making very few calls, so disable any delays
 	}
 
 	wg.Add(1)
