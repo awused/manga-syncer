@@ -63,7 +63,7 @@ func downloadChapter(c chapterJob) {
 	}
 	defer os.RemoveAll(dir)
 
-	if *chapterFlag != "" {
+	if *chapterFlag == "" {
 		select {
 		case <-closeChan:
 			return
