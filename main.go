@@ -82,8 +82,8 @@ func removeExisting(files []os.FileInfo, id string) []os.FileInfo {
 }
 
 // This is much more restrictive than what is truly needed for just safety.
-var safeFilenameRegex = regexp.MustCompile(`[^’'",#!\(\)!\p{L}\p{N}-_+=\[\]. ]+`)
-var safeQuestionMarkRegex = regexp.MustCompile(`[^?’'",#!\(\)!\p{L}\p{N}-_+=\[\]. ]+`)
+var safeFilenameRegex = regexp.MustCompile(`[^☆:;’'",#!\(\)!\p{L}\p{N}-_+=\[\]. ]+`)
+var safeQuestionMarkRegex = regexp.MustCompile(`[^?☆:;’'",#!\(\)!\p{L}\p{N}-_+=\[\]. ]+`)
 var repeatedHyphens = regexp.MustCompile(`--+`)
 
 func convertName(input string) string {
