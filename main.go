@@ -21,13 +21,14 @@ import (
 )
 
 type config struct {
-	Language        string
-	Manga           []string
-	OutputDirectory string
-	Threads         int
-	TempDirectory   string
-	RenameChapters  bool
-	RenameManga     bool
+	Language           string
+	Manga              []string
+	OutputDirectory    string
+	Threads            int
+	TempDirectory      string
+	RenameChapters     bool
+	AllowQuestionMarks bool
+	RenameManga        bool
 }
 
 var conf config
@@ -80,7 +81,9 @@ func removeExisting(files []os.FileInfo, id string) []os.FileInfo {
 	return files
 }
 
-var safeFilenameRegex = regexp.MustCompile(`[^'"#!\(\)!\p{L}\p{N}-_+=\[\]. ]+`)
+// This is much more restrictive than what is truly needed for just safety.
+var safeFilenameRegex = regexp.MustCompile(`[^’'",#!\(\)!\p{L}\p{N}-_+=\[\]. ]+`)
+var safeQuestionMarkRegex = regexp.MustCompile(`[^?’'",#!\(\)!\p{L}\p{N}-_+=\[\]. ]+`)
 var repeatedHyphens = regexp.MustCompile(`--+`)
 
 func convertName(input string) string {
@@ -118,6 +121,11 @@ func main() {
 	if conf.Threads <= 0 {
 		log.Fatalln("Must specify at least one thread.")
 	}
+
+	if conf.AllowQuestionMarks {
+		safeFilenameRegex = safeQuestionMarkRegex
+	}
+
 	// We can revisit this in the future but Mangadex in particular has a
 	// low limit so additional threads are dangerous.
 	// conf.Threads = 1
