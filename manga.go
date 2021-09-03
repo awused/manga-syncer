@@ -244,7 +244,9 @@ func buildChapterArchiveName(c mangaChapter, cid string, groups map[string]strin
 			gns = append(gns, gn)
 		}
 	}
-	out += " [" + strings.Join(gns, ", ") + "]"
+	if len(gns) > 0 {
+		out += " [" + strings.Join(gns, ", ") + "]"
+	}
 
 	return convertName(out) + " - " + cid + ".zip"
 }
@@ -306,6 +308,26 @@ func getAllChapters(mid string) ([]mangaChapter, error) {
 	}
 
 	return chapters, nil
+}
+
+func filterChapters(cs []mangaChapter) []mangaChapter {
+	out := []mangaChapter{}
+
+outer:
+	for _, c := range cs {
+		for _, g := range groupIdsForChapter(c) {
+			// O(n*m) is probably fine here.
+			for _, bg := range conf.BlockedGroups {
+				if g == bg {
+					continue outer
+				}
+			}
+		}
+
+		out = append(out, c)
+	}
+
+	return out
 }
 
 func groupIdsForChapter(c mangaChapter) []string {
@@ -422,6 +444,8 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		return
 	}
 	log.Debugf("Fetched %d chapters for %s\n", len(chapters), mangaDir)
+
+	chapters = filterChapters(chapters)
 
 	groups, err := getAllGroups(chapters)
 	if err != nil {

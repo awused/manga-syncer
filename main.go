@@ -29,6 +29,7 @@ type config struct {
 	RenameChapters     bool
 	AllowQuestionMarks bool
 	RenameManga        bool
+	BlockedGroups      []string
 }
 
 var conf config
