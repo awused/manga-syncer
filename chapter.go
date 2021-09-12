@@ -71,7 +71,7 @@ func downloadChapter(c chapterJob) {
 		}
 	}
 
-	resp, err := client.Get(fmt.Sprintf(atHomeServerURL, c.chapter.Data.ID))
+	resp, err := client.Get(fmt.Sprintf(atHomeServerURL, c.chapter.ID))
 	if err != nil {
 		log.Errorln(err)
 		return
@@ -84,7 +84,7 @@ func downloadChapter(c chapterJob) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Errorln("Chapter "+c.chapter.Data.ID, resp.Request.URL, errors.New(resp.Status), string(body))
+		log.Errorln("Chapter "+c.chapter.ID, resp.Request.URL, errors.New(resp.Status), string(body))
 		return
 	}
 
@@ -96,12 +96,12 @@ func downloadChapter(c chapterJob) {
 	}
 
 	if ah.BaseURL == "" {
-		log.Errorln("Chapter "+c.chapter.Data.ID, resp.Request.URL, "Empty base URL")
+		log.Errorln("Chapter "+c.chapter.ID, resp.Request.URL, "Empty base URL")
 		return
 	}
 
 	errCh := make(chan error)
-	for i, p := range c.chapter.Data.Attributes.Data {
+	for i, p := range c.chapter.Attributes.Data {
 		select {
 		case <-closeChan:
 			return
@@ -109,7 +109,7 @@ func downloadChapter(c chapterJob) {
 		default:
 		}
 
-		url := ah.BaseURL + "/data/" + c.chapter.Data.Attributes.Hash + "/" + p
+		url := ah.BaseURL + "/data/" + c.chapter.Attributes.Hash + "/" + p
 		file := filepath.Join(dir, fmt.Sprintf("%03d", i+1)+filepath.Ext(p))
 		go func() {
 			select {
@@ -123,13 +123,13 @@ func downloadChapter(c chapterJob) {
 
 			err := downloadImage(url, file)
 			if err != nil {
-				log.Errorln("Chapter "+c.chapter.Data.ID, url, err)
+				log.Errorln("Chapter "+c.chapter.ID, url, err)
 			}
 			errCh <- err
 		}()
 	}
 
-	for range c.chapter.Data.Attributes.Data {
+	for range c.chapter.Attributes.Data {
 		pageErr := <-errCh
 		if pageErr != nil {
 			err = pageErr

@@ -20,24 +20,22 @@ const chapterURL = "https://api.mangadex.org/chapter/%s"
 const scanlationGroupsURL = "https://api.mangadex.org/group?limit=100"
 
 type mangaChapter struct {
-	Result string `json:"result"`
-	Data   struct {
-		ID         string `json:"id"`
-		Type       string `json:"type"`
-		Attributes struct {
-			Volume             *stringable `json:"volume"`
-			Chapter            stringable  `json:"chapter"`
-			Title              *string     `json:"title"`
-			TranslatedLanguage string      `json:"translatedLanguage"`
-			Hash               string      `json:"hash"`
-			Data               []string    `json:"data"`
-			DataSaver          []string    `json:"dataSaver"`
-			PublishAt          time.Time   `json:"publishAt"`
-			CreatedAt          time.Time   `json:"createdAt"`
-			UpdatedAt          interface{} `json:"updatedAt"`
-			Version            int         `json:"version"`
-		} `json:"attributes"`
-	} `json:"data"`
+	ID         string `json:"id"`
+	Type       string `json:"type"`
+	Attributes struct {
+		Volume             *stringable `json:"volume"`
+		Chapter            stringable  `json:"chapter"`
+		Title              *string     `json:"title"`
+		TranslatedLanguage string      `json:"translatedLanguage"`
+		Hash               string      `json:"hash"`
+		Data               []string    `json:"data"`
+		DataSaver          []string    `json:"dataSaver"`
+		ExternalURL        interface{} `json:"externalUrl"`
+		PublishAt          time.Time   `json:"publishAt"`
+		CreatedAt          time.Time   `json:"createdAt"`
+		UpdatedAt          time.Time   `json:"updatedAt"`
+		Version            int         `json:"version"`
+	} `json:"attributes"`
 	Relationships []struct {
 		ID   string `json:"id"`
 		Type string `json:"type"`
@@ -45,12 +43,13 @@ type mangaChapter struct {
 }
 
 type chaptersResponse struct {
-	Results []mangaChapter `json:"results"`
-	Limit   int            `json:"limit"`
-	Offset  int            `json:"offset"`
-	Total   int            `json:"total"`
+	Result   string         `json:"result"`
+	Response string         `json:"response"`
+	Data     []mangaChapter `json:"data"`
+	Limit    int            `json:"limit"`
+	Offset   int            `json:"offset"`
+	Total    int            `json:"total"`
 }
-
 type mangaMetadata struct {
 	Result string `json:"result"`
 	Data   struct {
@@ -227,14 +226,14 @@ func getOrCreateMangaDirectory(m mangaMetadata, mUUID string) (string, error) {
 
 func buildChapterArchiveName(c mangaChapter, cid string, groups map[string]string) string {
 	out := ""
-	if c.Data.Attributes.Volume != nil {
-		out += "Vol. " + (string)(*c.Data.Attributes.Volume) + " "
+	if c.Attributes.Volume != nil {
+		out += "Vol. " + (string)(*c.Attributes.Volume) + " "
 	}
 
-	out += "Ch. " + (string)(c.Data.Attributes.Chapter)
+	out += "Ch. " + (string)(c.Attributes.Chapter)
 
-	if c.Data.Attributes.Title != nil && *c.Data.Attributes.Title != "" {
-		out += " " + *c.Data.Attributes.Title
+	if c.Attributes.Title != nil && *c.Attributes.Title != "" {
+		out += " " + *c.Attributes.Title
 	}
 
 	gns := []string{}
@@ -295,13 +294,13 @@ func getAllChapters(mid string) ([]mangaChapter, error) {
 			return nil, err
 		}
 
-		chapters = append(chapters, cr.Results...)
+		chapters = append(chapters, cr.Data...)
 		total = cr.Total
 
-		if len(cr.Results) != pageSize && offset+len(cr.Results) < total {
+		if len(cr.Data) != pageSize && offset+len(cr.Data) < total {
 			log.Warningf("Manga %s: invalid chapter pagination. "+
 				"Requested %d chapters at offset %d with %d total but got %d\n",
-				mid, pageSize, offset, total, len(cr.Results))
+				mid, pageSize, offset, total, len(cr.Data))
 		}
 
 		offset += pageSize
@@ -456,32 +455,32 @@ func syncManga(mid string, ch chan<- chapterJob) {
 	chs := make(map[string]bool)
 
 	for _, c := range chapters {
-		cid, err := convertUUID(c.Data.ID)
+		cid, err := convertUUID(c.ID)
 		if err != nil {
 			log.Errorln("Manga "+mid, "Invalid chapter UUID", err)
 			// Unlikely to be able to continue
 			return
 		}
 
-		if *chapterFlag != "" && *chapterFlag != c.Data.ID {
+		if *chapterFlag != "" && *chapterFlag != c.ID {
 			continue
 		}
 
-		if chs[c.Data.ID] {
+		if chs[c.ID] {
 			// Turns out, mangadex doesn't have a default ordering for chapters.
 			// I don't trust them to honour an explicit ordering either.
-			log.Warningln("duplicate chapter ID " + c.Data.ID)
+			log.Warningln("duplicate chapter ID " + c.ID)
 			continue
 		}
-		chs[c.Data.ID] = true
+		chs[c.ID] = true
 
-		if len(c.Data.Attributes.Data) == 0 {
+		if len(c.Attributes.Data) == 0 {
 			log.Debugln("Chapter "+cid, "Empty chapter", err)
 			continue
 		}
 
-		if len(c.Data.Attributes.Data) == 1 &&
-			strings.HasPrefix(c.Data.Attributes.Data[0], "https://") {
+		if len(c.Attributes.Data) == 1 &&
+			strings.HasPrefix(c.Attributes.Data[0], "https://") {
 			log.Debugln("Chapter "+cid, "Chapter is externally hosted", err)
 			continue
 		}
