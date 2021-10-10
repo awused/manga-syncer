@@ -106,12 +106,17 @@ func convertUUID(input string) (string, error) {
 var printValid = flag.Bool("print-valid", false, "Print all valid chapter archives to stdout without downloading anything new.")
 var printUmatched = flag.Bool("print-unmatched", false, "Print all chapter archives that exist in a manga directory but don't match a chapter on the remote host.")
 var chapterFlag = flag.String("chapter", "", "Download only this chapter from the given manga.")
+var vFlag = flag.Bool("v", false, "Be more verbose.")
 
 func main() {
 	flag.Parse()
 
 	if *printValid && *printUmatched {
 		log.Fatalln("Can't specify print-valid and print-unmatched at the same time")
+	}
+
+	if *vFlag {
+		log.SetLevel(log.DebugLevel)
 	}
 
 	err := awconf.LoadConfig("manga-syncer", &conf)
