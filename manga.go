@@ -56,33 +56,15 @@ type mangaMetadata struct {
 		ID         string `json:"id"`
 		Type       string `json:"type"`
 		Attributes struct {
-			Title     map[string]string `json:"title"`
-			AltTitles []struct {
-				En string `json:"en"`
-			} `json:"altTitles"`
-			Description struct {
-				En string `json:"en"`
-			} `json:"description"`
-			IsLocked bool `json:"isLocked"`
-			Links    struct {
-				Al    string `json:"al"`
-				Ap    string `json:"ap"`
-				Bw    string `json:"bw"`
-				Kt    string `json:"kt"`
-				Mu    string `json:"mu"`
-				Amz   string `json:"amz"`
-				Ebj   string `json:"ebj"`
-				Mal   string `json:"mal"`
-				Raw   string `json:"raw"`
-				Engtl string `json:"engtl"`
-			} `json:"links"`
-			OriginalLanguage       string      `json:"originalLanguage"`
-			LastVolume             interface{} `json:"lastVolume"`
-			LastChapter            string      `json:"lastChapter"`
-			PublicationDemographic string      `json:"publicationDemographic"`
-			Status                 string      `json:"status"`
-			Year                   interface{} `json:"year"`
-			ContentRating          string      `json:"contentRating"`
+			Title                  map[string]string `json:"title"`
+			IsLocked               bool              `json:"isLocked"`
+			OriginalLanguage       string            `json:"originalLanguage"`
+			LastVolume             interface{}       `json:"lastVolume"`
+			LastChapter            string            `json:"lastChapter"`
+			PublicationDemographic string            `json:"publicationDemographic"`
+			Status                 string            `json:"status"`
+			Year                   interface{}       `json:"year"`
+			ContentRating          string            `json:"contentRating"`
 			Tags                   []struct {
 				ID         string `json:"id"`
 				Type       string `json:"type"`
