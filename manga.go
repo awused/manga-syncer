@@ -373,7 +373,7 @@ func getAllGroups(chapters []mangaChapter) (map[string]string, error) {
 func syncManga(mid string, ch chan<- chapterJob) {
 	resp, err := client.Get(fmt.Sprintf(mangaURL, mid))
 	if err != nil {
-		log.Errorln("Manga "+mid, resp.Request.URL, err)
+		log.Errorln("Manga "+mid, fmt.Sprintf(mangaURL, mid), err)
 		return
 	}
 	body, err := ioutil.ReadAll(resp.Body)
