@@ -19,6 +19,12 @@ const mangaURL = "https://api.mangadex.org/manga/%s"
 const chapterURL = "https://api.mangadex.org/chapter/%s"
 const scanlationGroupsURL = "https://api.mangadex.org/group?limit=100"
 
+type singleChapterResponse struct {
+	Result   string       `json:"result"`
+	Response string       `json:"response"`
+	Data     mangaChapter `json:"data"`
+}
+
 type mangaChapter struct {
 	ID         string `json:"id"`
 	Type       string `json:"type"`
@@ -126,26 +132,26 @@ type scanlationGroups struct {
 }
 
 func getSingleChapter(cid string) (mangaChapter, error) {
-	var c mangaChapter
+	var c singleChapterResponse
 	resp, err := client.Get(fmt.Sprintf(chapterURL, cid))
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorln("Chapter "+cid, resp.Request.URL, err)
-		return c, err
+		return c.Data, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		log.Errorln("Chapter "+cid, resp.Request.URL, errors.New(resp.Status), string(body))
-		return c, err
+		return c.Data, err
 	}
 
 	err = json.Unmarshal(body, &c)
 	if err != nil {
 		log.Errorln("Chapter "+cid, resp.Request.URL, err, string(body))
-		return c, err
+		return c.Data, err
 	}
-	return c, nil
+	return c.Data, nil
 }
 
 func getMangaIDForChapter(cid string) (string, error) {
