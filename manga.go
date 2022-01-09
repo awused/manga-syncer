@@ -33,9 +33,7 @@ type mangaChapter struct {
 		Chapter            stringable  `json:"chapter"`
 		Title              *string     `json:"title"`
 		TranslatedLanguage string      `json:"translatedLanguage"`
-		Hash               string      `json:"hash"`
-		Data               []string    `json:"data"`
-		DataSaver          []string    `json:"dataSaver"`
+		Pages              int         `json:"pages":`
 		ExternalURL        interface{} `json:"externalUrl"`
 		PublishAt          time.Time   `json:"publishAt"`
 		CreatedAt          time.Time   `json:"createdAt"`
@@ -462,13 +460,12 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		}
 		chs[c.ID] = true
 
-		if len(c.Attributes.Data) == 0 {
+		if c.Attributes.Pages <= 0 {
 			log.Debugln("Chapter "+cid, "Empty chapter", err)
 			continue
 		}
 
-		if len(c.Attributes.Data) == 1 &&
-			strings.HasPrefix(c.Attributes.Data[0], "https://") {
+		if c.Attributes.ExternalURL != nil {
 			log.Debugln("Chapter "+cid, "Chapter is externally hosted", err)
 			continue
 		}

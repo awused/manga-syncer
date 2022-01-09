@@ -21,7 +21,13 @@ type chapterJob struct {
 }
 
 type atHomeResponse struct {
+	Result  string `json:"result"`
 	BaseURL string `json:"baseUrl"`
+	Chapter struct {
+		Hash      string   `json:"hash"`
+		Data      []string `json:"data"`
+		DataSaver []string `json:"dataSaver"`
+	} `json:"chapter"`
 }
 
 const atHomeServerURL = "https://api.mangadex.org/at-home/server/%s"
@@ -101,7 +107,7 @@ func downloadChapter(c chapterJob) {
 	}
 
 	errCh := make(chan error)
-	for i, p := range c.chapter.Attributes.Data {
+	for i, p := range ah.Chapter.Data {
 		select {
 		case <-closeChan:
 			return
@@ -109,7 +115,7 @@ func downloadChapter(c chapterJob) {
 		default:
 		}
 
-		url := ah.BaseURL + "/data/" + c.chapter.Attributes.Hash + "/" + p
+		url := ah.BaseURL + "/data/" + ah.Chapter.Hash + "/" + p
 		file := filepath.Join(dir, fmt.Sprintf("%03d", i+1)+filepath.Ext(p))
 		go func() {
 			select {
@@ -129,7 +135,7 @@ func downloadChapter(c chapterJob) {
 		}()
 	}
 
-	for range c.chapter.Attributes.Data {
+	for range ah.Chapter.Data {
 		pageErr := <-errCh
 		if pageErr != nil {
 			err = pageErr
