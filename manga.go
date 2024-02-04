@@ -33,7 +33,7 @@ type mangaChapter struct {
 		Chapter            stringable  `json:"chapter"`
 		Title              *string     `json:"title"`
 		TranslatedLanguage string      `json:"translatedLanguage"`
-		Pages              int         `json:"pages":`
+		Pages              int         `json:"pages"`
 		ExternalURL        interface{} `json:"externalUrl"`
 		PublishAt          time.Time   `json:"publishAt"`
 		CreatedAt          time.Time   `json:"createdAt"`
@@ -91,39 +91,37 @@ type mangaMetadata struct {
 }
 
 type scanlationGroups struct {
-	Results []struct {
-		Result string `json:"result"`
-		Data   struct {
-			ID         string `json:"id"`
-			Type       string `json:"type"`
-			Attributes struct {
-				Name   string `json:"name"`
-				Leader struct {
-					ID         string `json:"id"`
-					Type       string `json:"type"`
-					Attributes struct {
-						Username string `json:"username"`
-						Version  int    `json:"version"`
-					} `json:"attributes"`
-				} `json:"leader"`
-				Members []struct {
-					ID         string `json:"id"`
-					Type       string `json:"type"`
-					Attributes struct {
-						Username string `json:"username"`
-						Version  int    `json:"version"`
-					} `json:"attributes"`
-				} `json:"members"`
-				CreatedAt time.Time   `json:"createdAt"`
-				UpdatedAt interface{} `json:"updatedAt"`
-				Version   int         `json:"version"`
-			} `json:"attributes"`
-		} `json:"data"`
+	Result   string `json:"result"`
+	Response string `json:"response"`
+	Data     []struct {
+		ID         string `json:"id"`
+		Type       string `json:"type"`
+		Attributes struct {
+			Name             string        `json:"name"`
+			AltNames         []interface{} `json:"altNames"`
+			Locked           bool          `json:"locked"`
+			Website          interface{}   `json:"website"`
+			IrcServer        interface{}   `json:"ircServer"`
+			IrcChannel       interface{}   `json:"ircChannel"`
+			Discord          string        `json:"discord"`
+			ContactEmail     interface{}   `json:"contactEmail"`
+			Description      string        `json:"description"`
+			Twitter          interface{}   `json:"twitter"`
+			MangaUpdates     interface{}   `json:"mangaUpdates"`
+			FocusedLanguages []string      `json:"focusedLanguages"`
+			Official         bool          `json:"official"`
+			Verified         bool          `json:"verified"`
+			Inactive         bool          `json:"inactive"`
+			PublishDelay     interface{}   `json:"publishDelay"`
+			CreatedAt        time.Time     `json:"createdAt"`
+			UpdatedAt        time.Time     `json:"updatedAt"`
+			Version          int           `json:"version"`
+		} `json:"attributes"`
 		Relationships []struct {
 			ID   string `json:"id"`
 			Type string `json:"type"`
 		} `json:"relationships"`
-	} `json:"results"`
+	} `json:"data"`
 	Limit  int `json:"limit"`
 	Offset int `json:"offset"`
 	Total  int `json:"total"`
@@ -327,17 +325,17 @@ func groupIdsForChapter(c mangaChapter) []string {
 }
 
 func getAllGroups(chapters []mangaChapter) (map[string]string, error) {
-	// Just handle up to 100 groups since it's rather unrealistic to plan for more.
-	groups := make(map[string]string)
+	// Just handle up to 100 groupIds since it's rather unrealistic to plan for more.
+	groupIds := make(map[string]bool)
 
 	for _, c := range chapters {
 		for _, g := range groupIdsForChapter(c) {
-			groups[g] = ""
+			groupIds[g] = true
 		}
 	}
 
 	url := scanlationGroupsURL
-	for gid := range groups {
+	for gid := range groupIds {
 		url += "&ids[]=" + gid
 	}
 
@@ -367,9 +365,13 @@ func getAllGroups(chapters []mangaChapter) (map[string]string, error) {
 		return nil, err
 	}
 
-	groups = make(map[string]string)
-	for _, g := range sg.Results {
-		groups[g.Data.ID] = g.Data.Attributes.Name
+	groups := make(map[string]string)
+	for _, g := range sg.Data {
+		groups[g.ID] = g.Attributes.Name
+		delete(groupIds, g.ID)
+	}
+	if len(groupIds) != 0 {
+		log.Errorf("Unmatched group IDs: %v\n", groupIds)
 	}
 	return groups, nil
 }
@@ -437,7 +439,6 @@ func syncManga(mid string, ch chan<- chapterJob) {
 		log.Errorln("Manga "+mid, "Error fetching scanlation groups", err)
 		return
 	}
-
 	chs := make(map[string]bool)
 
 	for _, c := range chapters {
