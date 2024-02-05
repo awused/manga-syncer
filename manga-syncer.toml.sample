@@ -1,44 +1,38 @@
 # Currently most of these are specific to Mangadex. The config format will
 # change if more sites are supported.
 
+# Language code used by Mangadex. Must be set.
+language = "en"
+
 # Directory where all the manga will be stored.
 # The directory must already exist.
 # Existing files in the directory will not be touched but manually deleting
 # chapters will cause them to be redownloaded.
-OutputDirectory = "/some/path"
+output_directory = "/some/path"
 
 # Directory to store temporary files, leave blank for the system default.
-TempDirectory = '/tmp'
+temp_directory = '/tmp'
 
-# The number of pages to download in parallel.
-# Don't set it too high.
-Threads = 4
-
-# Language code used by Mangadex. Must be set.
-Language = "en"
-
-# Whether or not chapter archives should be renamed.
-# This can be relevant when volume numbering is revised later.
-RenameChapters = true
-
-# Whether or not manga directories should be renamed.
-RenameManga = true
+# Whether or not manga directories and chapter archives should be renamed.
+# This can be relevant when volume numbering is revised later or metadata is added.
+rename_chapters = true
+rename_manga = true
 
 # Whether to allow question marks in file names or not.
 # Most operating systems allow question marks in file names.
 # Windows does not, files cannot be created or read if their names contain question marks.
 #
 # DO NOT ENABLE THIS ON WINDOWS
-AllowQuestionMarks = false
+allow_question_marks = false
 
-# Mangadex manga UUIDs.
-# TODO -- update
-# These are the numbers in the URLs for the Manga, not the individual chapters.
-# https://mangadex.org/title/36283/looking-up-to-magical-girls -> "36283"
-Manga = [
-]
-
-# Groups to block, for low quality or otherwise.
-BlockedGroups = [
+# Groups to block, for low quality or other reasons.
+blocked_groups = [
   "4fdaf04f-b965-4f82-801d-8bfc00693773",
+  "9dcf0896-a184-4cbc-8070-751bb71c5f2e",
+  "fb26969d-0365-4944-831a-5b8a3d471e94",
 ]
+
+# The number of pages to download in parallel
+# Do not set it too high.
+parallel_downloads = 4
+
