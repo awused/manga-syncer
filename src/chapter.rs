@@ -9,11 +9,12 @@ use once_cell::unsync::Lazy;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use serde::Deserialize;
+use serde_with::{serde_as, DefaultOnNull, NoneAsEmptyString};
 use zip::write::FileOptions;
 use zip::ZipWriter;
 
-use crate::groups::groups_in_chapter;
-use crate::manga::Chapter;
+use crate::groups::{get_all_groups, groups_in_chapter};
+use crate::manga::{get_or_create_dir, MangaInfo};
 use crate::util::{convert_filename, convert_uuid, find_existing, http_get, json_get, FindResult};
 use crate::CONFIG;
 
@@ -25,7 +26,29 @@ static DOWNLOADERS: sync::Lazy<ThreadPool> = sync::Lazy::new(|| {
         .unwrap()
 });
 
-fn download_chapter(chapter: Chapter, archive_path: PathBuf) -> Result<()> {
+pub fn sync_single_chapter(chapter_id: String) -> Result<()> {
+    info!("Syncing single chapter {chapter_id}");
+    let chapter: ChapterInfo = json_get(format!("https://api.mangadex.org/chapter/{chapter_id}"))?;
+
+    let manga_id = chapter
+        .data
+        .relationships
+        .iter()
+        .filter(|r| r.type_field == "manga")
+        .map(|r| &*r.id)
+        .next()
+        .context("Chapter has no associated manga")?;
+
+    let info: MangaInfo = json_get(format!("https://api.mangadex.org/manga/{manga_id}"))?;
+    let manga_dir = get_or_create_dir(&info)?;
+
+    let chapters = [chapter.data];
+    let groups = get_all_groups(&chapters)?;
+
+    sync_chapters(chapters.into_iter(), &manga_dir, &groups)
+}
+
+fn download_chapter(chapter: &Chapter, archive_path: PathBuf) -> Result<()> {
     let mut builder = tempfile::Builder::new();
     builder.prefix("manga-syncer");
     let tmp_dir = CONFIG
@@ -156,7 +179,9 @@ pub fn sync_chapters(
             }
         }
 
-        DOWNLOADERS.install(|| download_chapter(c, chapter_path))?;
+        DOWNLOADERS
+            .install(|| download_chapter(&c, chapter_path))
+            .with_context(|| format!("Failed while downloading chapter {}", c.id))?;
     }
     Ok(())
 }
@@ -173,4 +198,39 @@ struct AtHomeResponse {
 struct AtHomeChapter {
     pub hash: String,
     pub data: Vec<String>,
+}
+
+#[derive(Default, Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ChapterInfo {
+    pub data: Chapter,
+}
+
+#[derive(Default, Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Chapter {
+    pub id: String,
+    pub attributes: ChapterAttributes,
+    pub relationships: Vec<Relationship>,
+}
+
+#[serde_as]
+#[derive(Default, Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ChapterAttributes {
+    #[serde_as(as = "NoneAsEmptyString")]
+    pub volume: Option<String>,
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub chapter: Option<String>,
+    #[serde_as(as = "NoneAsEmptyString")]
+    pub title: Option<String>,
+    pub external_url: Option<String>,
+}
+
+#[derive(Default, Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Relationship {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub type_field: String,
 }

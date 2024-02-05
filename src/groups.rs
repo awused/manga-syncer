@@ -4,7 +4,7 @@ use anyhow::Result;
 use reqwest::Url;
 use serde::Deserialize;
 
-use crate::manga::Chapter;
+use crate::chapter::Chapter;
 use crate::util::json_get;
 
 pub fn groups_in_chapter(c: &Chapter) -> impl Iterator<Item = &str> {

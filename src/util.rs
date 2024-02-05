@@ -65,6 +65,7 @@ pub fn english_or_first(s: &LocalizedString) -> Option<String> {
     s.get("en").or_else(|| s.values().next()).map(String::clone)
 }
 
+
 pub fn convert_uuid(id: &str) -> Result<String> {
     Ok(URL_SAFE_NO_PAD.encode(Uuid::parse_str(id)?.into_bytes()))
 }

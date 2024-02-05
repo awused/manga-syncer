@@ -11,6 +11,8 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 use serde_with::{serde_as, NoneAsEmptyString};
 
+use crate::chapter::sync_single_chapter;
+
 mod chapter;
 mod closing;
 mod groups;
@@ -79,10 +81,7 @@ fn main() -> Result<()> {
         Opt {
             cmd: Some(Command::Chapter { chapter_id }),
             ..
-        } => {
-            println!("Chapter {chapter_id}");
-            todo!()
-        }
+        } => sync_single_chapter(chapter_id),
         Opt {
             cmd: Some(Command::Manga { manga_ids }), ..
         }

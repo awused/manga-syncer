@@ -5,9 +5,8 @@ use anyhow::{bail, Context, Result};
 use once_cell::unsync::Lazy;
 use reqwest::Url;
 use serde::Deserialize;
-use serde_with::{serde_as, DefaultOnNull, NoneAsEmptyString};
 
-use crate::chapter::sync_chapters;
+use crate::chapter::{sync_chapters, Chapter};
 use crate::groups::get_all_groups;
 use crate::util::{
     convert_filename, convert_uuid, english_or_first, find_existing, json_get, FindResult,
@@ -32,7 +31,7 @@ pub fn sync_manga(manga_id: &str) -> Result<()> {
 }
 
 
-fn get_or_create_dir(info: &MangaInfo) -> Result<PathBuf> {
+pub fn get_or_create_dir(info: &MangaInfo) -> Result<PathBuf> {
     let converted_id = convert_uuid(&info.data.id)?;
     let title = english_or_first(&info.data.attributes.title).context("No title present")?;
     let dir_name = format!("{} - {converted_id}", convert_filename(&title));
@@ -119,29 +118,21 @@ fn get_all_chapters(manga_id: &str) -> Result<Vec<Chapter>> {
 
 #[derive(Default, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct MangaInfo {
-    pub data: Data,
+pub(super) struct MangaInfo {
+    pub data: Manga,
 }
 
 #[derive(Default, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Data {
+pub(super) struct Manga {
     pub id: String,
     pub attributes: MangaAttributes,
 }
 
 #[derive(Default, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct MangaAttributes {
+pub(super) struct MangaAttributes {
     pub title: LocalizedString,
-}
-
-#[derive(Default, Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Relationship {
-    pub id: String,
-    #[serde(rename = "type")]
-    pub type_field: String,
 }
 
 
@@ -150,25 +141,4 @@ pub struct Relationship {
 struct ChapterList {
     pub data: Vec<Chapter>,
     pub total: i64,
-}
-
-#[derive(Default, Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct Chapter {
-    pub id: String,
-    pub attributes: ChapterAttributes,
-    pub relationships: Vec<Relationship>,
-}
-
-#[serde_as]
-#[derive(Default, Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ChapterAttributes {
-    #[serde_as(as = "NoneAsEmptyString")]
-    pub volume: Option<String>,
-    #[serde_as(deserialize_as = "DefaultOnNull")]
-    pub chapter: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
-    pub title: Option<String>,
-    pub external_url: Option<String>,
 }
