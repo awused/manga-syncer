@@ -27,7 +27,7 @@ pub fn sync_manga(manga_id: &str) -> Result<()> {
         english_or_first(&info.data.attributes.title).unwrap()
     );
 
-    sync_chapters(chapters.into_iter(), &dir, &groups)
+    sync_chapters(chapters.into_iter(), &dir, &groups, true)
 }
 
 
@@ -73,7 +73,7 @@ fn get_all_chapters(manga_id: &str) -> Result<Vec<Chapter>> {
         .query_pairs_mut()
         .append_pair("limit", &PAGE_SIZE.to_string())
         .append_pair("translatedLanguage[]", &CONFIG.language)
-        .append_pair("order[chapter]", "desc");
+        .append_pair("order[chapter]", "asc");
 
     let mut chapters = Vec::new();
 

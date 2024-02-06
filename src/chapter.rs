@@ -45,7 +45,7 @@ pub fn sync_single_chapter(chapter_id: String) -> Result<()> {
     let chapters = [chapter.data];
     let groups = get_all_groups(&chapters)?;
 
-    sync_chapters(chapters.into_iter(), &manga_dir, &groups)
+    sync_chapters(chapters.into_iter(), &manga_dir, &groups, false)
 }
 
 fn download_chapter(chapter: &Chapter, archive_path: PathBuf) -> Result<()> {
@@ -83,13 +83,26 @@ fn download_chapter(chapter: &Chapter, archive_path: PathBuf) -> Result<()> {
 
             trace!("Downloading {url:?} to {filepath:?}");
 
-            let mut file = BufWriter::new(File::create(&filepath)?);
-            let mut contents = http_get(url)?;
+            let download = || {
+                let mut file = BufWriter::new(File::create(&filepath)?);
+                let mut contents = http_get(&url)?;
 
-            let n = io::copy(&mut contents, &mut file)?;
-            if n == 0 {
-                bail!("Wrote empty file to {filepath:?}");
+                let n = io::copy(&mut contents, &mut file)?;
+                if n == 0 {
+                    bail!("Wrote empty file to {filepath:?}");
+                }
+                Ok(())
+            };
+
+            let mut r = download();
+            for _i in 0..3 {
+                let Err(e) = &r else {
+                    break;
+                };
+                error!("Retrying download of {url:?} due to {e}");
+                r = download();
             }
+            r?;
 
             Ok(filepath)
         })
@@ -126,6 +139,7 @@ pub fn sync_chapters(
     chapters: impl Iterator<Item = Chapter>,
     manga_dir: &Path,
     groups: &HashMap<String, String>,
+    continue_on_error: bool,
 ) -> Result<()> {
     let existing: Lazy<Result<Vec<_>>, _> = Lazy::new(|| {
         let dirs: std::result::Result<Vec<_>, _> = read_dir(manga_dir)?.collect();
@@ -179,9 +193,17 @@ pub fn sync_chapters(
             }
         }
 
-        DOWNLOADERS
+        if let Err(e) = DOWNLOADERS
             .install(|| download_chapter(&c, chapter_path))
-            .with_context(|| format!("Failed while downloading chapter {}", c.id))?;
+            .with_context(|| format!("Failed while downloading chapter {}", c.id))
+        {
+            if continue_on_error {
+                // Mangadex@Home servers are often very unreliable.
+                error!("{e:?}");
+            } else {
+                return Err(e);
+            }
+        }
     }
     Ok(())
 }
