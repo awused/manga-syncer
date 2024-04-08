@@ -149,7 +149,6 @@ pub fn sync_chapters(
     for c in chapters {
         let converted_id = convert_uuid(&c.id)?;
         let chap_number = c.attributes.chapter.as_deref().unwrap_or("0");
-        // let title = english_or_first(&info.data.attributes.title).context("No title present")?;
         let groups = groups_in_chapter(&c)
             .filter_map(|g| groups.get(g).map(String::as_str))
             .collect::<Vec<_>>()
@@ -165,8 +164,9 @@ pub fn sync_chapters(
             (None, Some(t)) => {
                 format!("Ch. {chap_number} {t}")
             }
-            (..) => format!("Ch. {chap_number}"),
+            (None, None) => format!("Ch. {chap_number}"),
         };
+
         let filename = if groups.is_empty() {
             convert_filename(&name)
         } else {
@@ -199,7 +199,7 @@ pub fn sync_chapters(
         {
             if continue_on_error {
                 // Mangadex@Home servers are often very unreliable.
-                error!("{e:?}");
+                error!("{e:?}, proceeding with other chapters");
             } else {
                 return Err(e);
             }
@@ -230,7 +230,7 @@ struct ChapterInfo {
 
 #[derive(Default, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Chapter {
+pub struct Chapter {
     pub id: String,
     pub attributes: ChapterAttributes,
     pub relationships: Vec<Relationship>,
@@ -239,7 +239,7 @@ pub(crate) struct Chapter {
 #[serde_as]
 #[derive(Default, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct ChapterAttributes {
+pub struct ChapterAttributes {
     #[serde_as(as = "NoneAsEmptyString")]
     pub volume: Option<String>,
     #[serde_as(deserialize_as = "DefaultOnNull")]
@@ -251,7 +251,7 @@ pub(crate) struct ChapterAttributes {
 
 #[derive(Default, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Relationship {
+pub struct Relationship {
     pub id: String,
     #[serde(rename = "type")]
     pub type_field: String,

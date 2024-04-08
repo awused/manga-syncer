@@ -61,6 +61,7 @@ struct Config {
     allow_question_marks: bool,
     blocked_groups: HashSet<String>,
     parallel_downloads: NonZeroU8,
+    ignored_chapters: HashSet<String>,
 }
 
 static CONFIG: Lazy<Config> = Lazy::new(|| {

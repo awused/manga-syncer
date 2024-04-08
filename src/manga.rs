@@ -99,6 +99,11 @@ fn get_all_chapters(manga_id: &str) -> Result<Vec<Chapter>> {
                 return false;
             }
 
+            if CONFIG.ignored_chapters.contains(&c.id) {
+                debug!("Ignoring chapter {} by ID", c.id);
+                return false;
+            }
+
             if c.relationships.iter().any(|r| {
                 r.type_field == "scanlation_group" && CONFIG.blocked_groups.contains(&r.id)
             }) {
