@@ -138,7 +138,7 @@ fn download_chapter(chapter: &Chapter, archive_path: PathBuf) -> Result<()> {
 pub fn sync_chapters(
     chapters: impl Iterator<Item = Chapter>,
     manga_dir: &Path,
-    groups: &HashMap<String, String>,
+    groups: &HashMap<&str, &str>,
     continue_on_error: bool,
 ) -> Result<()> {
     let existing: Lazy<Result<Vec<_>>, _> = Lazy::new(|| {
@@ -150,7 +150,7 @@ pub fn sync_chapters(
         let converted_id = convert_uuid(&c.id)?;
         let chap_number = c.attributes.chapter.as_deref().unwrap_or("0");
         let groups = groups_in_chapter(&c)
-            .filter_map(|g| groups.get(g).map(String::as_str))
+            .filter_map(|g| groups.get(g).copied())
             .collect::<Vec<_>>()
             .join(", ");
 
