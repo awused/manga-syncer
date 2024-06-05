@@ -114,7 +114,7 @@ fn download_chapter(chapter: &Chapter, archive_path: PathBuf) -> Result<()> {
     let outfile = BufWriter::new(File::create(&temp_zip)?);
 
     let mut zip = ZipWriter::new(outfile);
-    let options = FileOptions::default().unix_permissions(0o755);
+    let options = FileOptions::<()>::default().unix_permissions(0o755);
 
     let mut buffer = Vec::new();
     for p in paths {
