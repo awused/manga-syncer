@@ -1,22 +1,22 @@
 use std::collections::HashMap;
-use std::fs::{read_dir, File};
+use std::fs::{File, read_dir};
 use std::io::{self, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use once_cell::sync;
 use once_cell::unsync::Lazy;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use serde::Deserialize;
-use serde_with::{serde_as, DefaultOnNull, NoneAsEmptyString};
-use zip::write::FileOptions;
+use serde_with::{DefaultOnNull, NoneAsEmptyString, serde_as};
 use zip::ZipWriter;
+use zip::write::FileOptions;
 
-use crate::groups::{get_all_groups, groups_in_chapter};
-use crate::manga::{get_or_create_dir, MangaInfo};
-use crate::util::{convert_filename, convert_uuid, find_existing, http_get, json_get, FindResult};
 use crate::CONFIG;
+use crate::groups::{get_all_groups, groups_in_chapter};
+use crate::manga::{MangaInfo, get_or_create_dir};
+use crate::util::{FindResult, convert_filename, convert_uuid, find_existing, http_get, json_get};
 
 static DOWNLOADERS: sync::Lazy<ThreadPool> = sync::Lazy::new(|| {
     ThreadPoolBuilder::new()
@@ -59,7 +59,10 @@ fn download_chapter(chapter: &Chapter, archive_path: PathBuf) -> Result<()> {
     let at_home: AtHomeResponse =
         json_get(format!("https://api.mangadex.org/at-home/server/{}", chapter.id))?;
 
-    if at_home.chapter.data.is_empty() {
+    if chapter.attributes.external_url.is_some() && at_home.chapter.data.is_empty() {
+        debug!("Skipping chapter {} with external url and no pages", chapter.id);
+        return Ok(());
+    } else if at_home.chapter.data.is_empty() {
         bail!("Got chapter with no pages: {chapter:?}\n{at_home:?}");
     }
 
@@ -79,7 +82,7 @@ fn download_chapter(chapter: &Chapter, archive_path: PathBuf) -> Result<()> {
             let filename = format!("{:03}.{ext}", (i + 1));
             let filepath = tmp_dir.path().join(filename);
 
-            let url = at_home.base_url.clone() + "/data/" + &at_home.chapter.hash + "/" + &p;
+            let url = at_home.base_url.clone() + "/data/" + &at_home.chapter.hash + "/" + p;
 
             trace!("Downloading {url:?} to {filepath:?}");
 

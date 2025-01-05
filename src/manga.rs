@@ -1,18 +1,18 @@
 use std::fs::read_dir;
 use std::path::PathBuf;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use once_cell::unsync::Lazy;
 use reqwest::Url;
 use serde::Deserialize;
 
-use crate::chapter::{sync_chapters, Chapter};
+use crate::CONFIG;
+use crate::chapter::{Chapter, sync_chapters};
 use crate::groups::get_all_groups;
 use crate::util::{
-    convert_filename, convert_uuid, english_or_first, find_existing, json_get, FindResult,
-    LocalizedString, PAGE_SIZE,
+    FindResult, LocalizedString, PAGE_SIZE, convert_filename, convert_uuid, english_or_first,
+    find_existing, json_get,
 };
-use crate::CONFIG;
 
 pub fn sync_manga(manga_id: &str) -> Result<()> {
     debug!("Syncing {manga_id}");
@@ -93,12 +93,6 @@ fn get_all_chapters(manga_id: &str) -> Result<Vec<Chapter>> {
         }
 
         chapters.extend(page.data.into_iter().filter(|c| {
-            if c.attributes.external_url.is_some() {
-                // Can any chapters have external urls but also pages on mangadex?
-                debug!("Filtering out chapter {} with external url", c.id);
-                return false;
-            }
-
             if CONFIG.ignored_chapters.contains(&c.id) {
                 debug!("Ignoring chapter {} by ID", c.id);
                 return false;
