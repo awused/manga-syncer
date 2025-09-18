@@ -1,11 +1,11 @@
+use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::fs::{File, read_dir};
 use std::io::{self, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
 use anyhow::{Context, Result, bail};
-use once_cell::sync;
-use once_cell::unsync::Lazy;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use serde::Deserialize;
@@ -18,7 +18,7 @@ use crate::groups::{get_all_groups, groups_in_chapter};
 use crate::manga::{MangaInfo, get_or_create_dir};
 use crate::util::{FindResult, convert_filename, convert_uuid, find_existing, http_get, json_get};
 
-static DOWNLOADERS: sync::Lazy<ThreadPool> = sync::Lazy::new(|| {
+static DOWNLOADERS: LazyLock<ThreadPool> = LazyLock::new(|| {
     ThreadPoolBuilder::new()
         .num_threads(CONFIG.parallel_downloads.get() as usize)
         .thread_name(|i| format!("downloader-{i}"))
@@ -144,7 +144,7 @@ pub fn sync_chapters(
     groups: &HashMap<&str, &str>,
     continue_on_error: bool,
 ) -> Result<()> {
-    let existing: Lazy<Result<Vec<_>>, _> = Lazy::new(|| {
+    let existing: LazyCell<Result<Vec<_>>, _> = LazyCell::new(|| {
         let dirs: std::result::Result<Vec<_>, _> = read_dir(manga_dir)?.collect();
         Ok(dirs?)
     });

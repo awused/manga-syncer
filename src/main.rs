@@ -4,12 +4,12 @@ extern crate log;
 use std::collections::HashSet;
 use std::num::NonZeroU8;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use once_cell::sync::Lazy;
 use serde::Deserialize;
-use serde_with::{serde_as, NoneAsEmptyString};
+use serde_with::{NoneAsEmptyString, serde_as};
 
 use crate::chapter::sync_single_chapter;
 
@@ -64,7 +64,7 @@ struct Config {
     ignored_chapters: HashSet<String>,
 }
 
-static CONFIG: Lazy<Config> = Lazy::new(|| {
+static CONFIG: LazyLock<Config> = LazyLock::new(|| {
     awconf::load_config::<Config>("manga-syncer", None::<&str>, None::<&str>)
         .unwrap()
         .0
@@ -76,7 +76,7 @@ fn main() -> Result<()> {
     closing::init()?;
 
     let cli = Opt::parse();
-    Lazy::force(&CONFIG);
+    LazyLock::force(&CONFIG);
 
     match cli {
         Opt {

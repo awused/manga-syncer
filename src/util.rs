@@ -1,31 +1,31 @@
 use std::borrow::Cow;
+use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::DirEntry;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 use std::thread;
 use std::time::Duration;
 
-use anyhow::{anyhow, bail, Result};
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use anyhow::{Result, anyhow, bail};
 use base64::Engine;
-use once_cell::sync::Lazy;
-use once_cell::unsync;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use regex::Regex;
-use reqwest::blocking::{Client, Response};
 use reqwest::IntoUrl;
+use reqwest::blocking::{Client, Response};
 use serde::de::DeserializeOwned;
 use uuid::Uuid;
 
-use crate::closing::err_if_closed;
 use crate::CONFIG;
+use crate::closing::err_if_closed;
 
 const DELAY: Duration = Duration::from_millis(1500);
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 pub const PAGE_SIZE: usize = 100;
 
-static CLIENT: Lazy<Client> = Lazy::new(|| {
+static CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         .user_agent(USER_AGENT)
         // Yes, some mangadex@home servers are this slow
@@ -71,11 +71,11 @@ pub fn convert_uuid(id: &str) -> Result<String> {
 }
 
 // This is much more restrictive than what is truly necessary
-static FILENAME_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"[^~☆:;’'",#!\(\)!\pL\pN\-_+=\[\]. ]+"#).unwrap());
-static FILENAME_QUESTION_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"[^?~☆:;’'",#!\(\)!\pL\pN\-_+=\[\]. ]+"#).unwrap());
-static HYPHENS: Lazy<Regex> = Lazy::new(|| Regex::new("--+").unwrap());
+static FILENAME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"[^~☆:;’'",#!\(\)!\pL\pN\-_+=\[\]. ]+"#).unwrap());
+static FILENAME_QUESTION_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"[^?~☆:;’'",#!\(\)!\pL\pN\-_+=\[\]. ]+"#).unwrap());
+static HYPHENS: LazyLock<Regex> = LazyLock::new(|| Regex::new("--+").unwrap());
 
 pub fn convert_filename(name: &str) -> String {
     let name = if CONFIG.allow_question_marks {
@@ -96,7 +96,7 @@ pub enum FindResult {
 
 pub fn find_existing(
     expected_abs_path: &Path,
-    dir: &unsync::Lazy<Result<Vec<DirEntry>>, impl FnOnce() -> Result<Vec<DirEntry>>>,
+    dir: &LazyCell<Result<Vec<DirEntry>>, impl FnOnce() -> Result<Vec<DirEntry>>>,
     converted_id: &str,
     // We operate on manga directories and chapter zip files
     is_dir: bool,

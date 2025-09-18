@@ -1,15 +1,14 @@
 use std::env::temp_dir;
 use std::io::Write;
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::thread::JoinHandle;
 use std::{process, thread};
 
 use anyhow::anyhow;
-use once_cell::sync::Lazy;
 
-static CLOSED: Lazy<Arc<AtomicBool>> = Lazy::new(|| Arc::new(AtomicBool::new(false)));
+static CLOSED: LazyLock<Arc<AtomicBool>> = LazyLock::new(|| Arc::new(AtomicBool::new(false)));
 
 pub fn err_if_closed() -> anyhow::Result<()> {
     if CLOSED.load(Ordering::Relaxed) { Err(anyhow!("Closed")) } else { Ok(()) }
@@ -43,8 +42,8 @@ pub fn init() -> std::io::Result<JoinHandle<()>> {
         use std::os::raw::c_int;
 
         use signal_hook::consts::TERM_SIGNALS;
-        use signal_hook::iterator::exfiltrator::SignalOnly;
         use signal_hook::iterator::SignalsInfo;
+        use signal_hook::iterator::exfiltrator::SignalOnly;
 
         if let Err(e) = catch_unwind(AssertUnwindSafe(|| {
             for sig in TERM_SIGNALS {

@@ -1,8 +1,8 @@
+use std::cell::LazyCell;
 use std::fs::read_dir;
 use std::path::PathBuf;
 
 use anyhow::{Context, Result, bail};
-use once_cell::unsync::Lazy;
 use reqwest::Url;
 use serde::Deserialize;
 
@@ -39,7 +39,7 @@ pub fn get_or_create_dir(info: &MangaInfo) -> Result<PathBuf> {
 
     // Could be more efficient with some kind of producer closure returning an iterator
     // Not likely to be worth it. We only really care for chapters in manga, not all manga.
-    let existing: Lazy<Result<Vec<_>>> = Lazy::new(|| {
+    let existing: LazyCell<Result<Vec<_>>> = LazyCell::new(|| {
         let dirs: std::result::Result<Vec<_>, _> = read_dir(&CONFIG.output_directory)?.collect();
         Ok(dirs?)
     });
